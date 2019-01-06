@@ -1,4 +1,4 @@
-use graphics::types::{ColorComponent, Color};
+use piston_window::types::{ColorComponent, Color};
 pub use self::ColorTone::*;
 
 // colors from https://www.rapidtables.com/web/color/RGB_Color.html

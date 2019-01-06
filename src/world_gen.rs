@@ -1,27 +1,23 @@
-use super::custom_colors::*;
-use piston_window::*;
-use graphics::math::*;
+use super::colors::*;
+use super::collision::*;
+use piston_window::math::Matrix2d;
 
-type Coord = u16;
-type Dist = f32;
-type Coords = Vec2d<Coord>;
-type Size = Vec2d<Dist>;
-struct Circle { coords : Coords, r : Dist }
+//use piston_window::{rectangle, math::Matrix2d, Graphics, types::Color};
 
 pub enum Tile { Forest, Village, Mine }
 
 pub enum Map {
-	RectTile { tile : Tile, width : Coord, height : Coord },
+	RectTile { tile : Tile, size : Size },
 	TileOnTop { main: Box<[(Coords, Map)]>, background : Box<Map> }
 }
-pub struct World { map : Map, trees : Vec<Circle> }
+pub struct World { map : Map, trees : Vec<CircleBounds> }
 const TREE_WIDTH : Dist = 5.0;
 
 pub fn generate_world(map : Map, tree_dist : Dist) -> World {
 	World { map : map, trees : vec![] }
 }
 
-fn tile_color(t : &Tile) -> types::Color {
+fn tile_color(t : &Tile) -> piston_window::types::Color {
 	match t {
 		Tile::Forest => solid_color(Lime),
 		Tile::Village => solid_color(PaleGoldenRod),
@@ -30,15 +26,15 @@ fn tile_color(t : &Tile) -> types::Color {
 }
 
 // todo: check if background tile is not overlapping main tile
-pub fn render_map<G>(x : u16, y :u16, map : &Map, t : math::Matrix2d, g : &mut G) where G : Graphics {
+pub fn render_map<G>(p : Point, map : &Map, t : piston_window::math::Matrix2d, g : &mut G) where G : piston_window::Graphics {
 	match map {
-		Map::RectTile { tile, width, height } => {
-			let rect = [x as f64, y as f64, *width as f64, *height as f64];
-			rectangle(tile_color(tile), rect, t, g)
+		Map::RectTile { tile, size } => {
+			let rect = [p.x as f64, p.y as f64, size.x as f64, size.y as f64];
+			piston_window::rectangle(tile_color(tile), rect, t, g)
 		},
 		Map::TileOnTop { main, background } => {
-			render_map(x, y, background.as_ref(), t, g);
-			main.as_ref().iter().for_each ( |([x_off, y_off], submap)| render_map(x + x_off, y + y_off, submap, t, g) );
+			render_map(p, background.as_ref(), t, g);
+			main.as_ref().iter().for_each ( |(offset, submap)| render_map(*offset + p, submap, t, g) );
 		}
 	}
 }
