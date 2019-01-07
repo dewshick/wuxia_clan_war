@@ -22,10 +22,10 @@ pub fn generate_world(map : Map) -> World {
 			while let Some(t) = gen_tree(&layer.bounds, &trees, 100) { trees.push(t); }
 		} else {
 			trees.retain(|tree| {
-				tree.coords.x + tree.r < layer.bounds.coords.x ||
-				tree.coords.x - tree.r > layer.bounds.coords.x + layer.bounds.rect.x ||
-				tree.coords.y + tree.r < layer.bounds.coords.y ||
-				tree.coords.y - tree.r > layer.bounds.coords.y  + layer.bounds.rect.y
+				tree.coords.x + tree.r + TREE_DIST < layer.bounds.coords.x ||
+				tree.coords.x - tree.r - TREE_DIST > layer.bounds.coords.x + layer.bounds.rect.x ||
+				tree.coords.y + tree.r + TREE_DIST < layer.bounds.coords.y ||
+				tree.coords.y - tree.r - TREE_DIST > layer.bounds.coords.y  + layer.bounds.rect.y
 			});
 		}
 	});
