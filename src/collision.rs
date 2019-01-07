@@ -4,12 +4,14 @@ use std::num::*;
 
 pub type Coord = f32;
 pub type Dist = f32;
-#[derive(Copy, Clone)] // maybe we can get rid of that later and use reference for points
+#[derive(Copy, Clone, Debug)] // maybe we can get rid of that later and use reference for points
 pub struct Point { pub x : Coord, pub y : Coord }
 pub type Coords = Point;
 pub type Size = Point;
 pub type Direction = Point;
+#[derive(Debug)]
 pub struct CircleBounds { pub coords : Coords, pub r : Dist }
+#[derive(Debug)]
 pub struct RectBounds { pub coords : Coords, pub rect : Size }
 pub struct ObjectWithBounds { name : String, bounds : CircleBounds, traits : [ObjectTraits] }
 enum ObjectTraits { Destructible }

@@ -4,21 +4,34 @@ use super::{thread_rng, Rng};
 use piston_window::math::Matrix2d;
 
 //use piston_window::{rectangle, math::Matrix2d, Graphics, types::Color};
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Tile { Forest, Village, Mine }
 
+#[derive(Debug)]
 pub struct RectTile { pub tile : Tile, pub bounds : RectBounds }
+
 type Map = Vec<RectTile>;
+
+#[derive(Debug)]
 pub struct World { map : Map, trees : Vec<CircleBounds> }
 const TREE_WIDTH : Dist = 15.0;
 const TREE_DIST : Dist = 7.0;
 
 pub fn generate_world(map : Map) -> World {
-	let mut trees = vec![];
-	map.iter().filter(|layer| layer.tile == Tile::Forest).for_each(|layer| {
-		while let Some(t) = gen_tree(&layer.bounds, &trees, 10) { trees.push(t); }
+	let mut trees : Vec<CircleBounds> = vec![];
+	map.iter().for_each(|layer| {
+		if (layer.tile == Tile::Forest) {
+			while let Some(t) = gen_tree(&layer.bounds, &trees, 15) { trees.push(t); }
+		} else {
+			trees.retain(|tree| {
+				tree.coords.x + tree.r < layer.bounds.coords.x ||
+				tree.coords.x - tree.r > layer.bounds.coords.x + layer.bounds.rect.x ||
+				tree.coords.y + tree.r < layer.bounds.coords.y ||
+				tree.coords.y - tree.r > layer.bounds.coords.y  + layer.bounds.rect.y
+			});
+		}
 	});
-	World { map, trees : trees }
+	World { map, trees }
 }
 
 fn gen_tree(layer : &RectBounds, trees : &Vec<CircleBounds>, attempts : i32) -> Option<CircleBounds> {
