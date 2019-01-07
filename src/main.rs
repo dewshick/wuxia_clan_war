@@ -13,8 +13,12 @@ fn main() {
 		WindowSettings::new("Hello Piston!", [640, 480]).exit_on_esc(true).build().unwrap();
 	let world = generate_world(vec![
 		RectTile {
+			tile: Tile::Water,
+			bounds: RectBounds { coords: Point::new(0.0, 0.0), rect: Point::new(640.0, 480.0) }
+		},
+		RectTile {
 			tile: Tile::Forest,
-			bounds: RectBounds { coords: Point::new(0.0, 0.0), rect: Point::new(480.0, 320.0) }
+			bounds: RectBounds { coords: Point::new(50.0, 50.0), rect: Point::new(480.0, 320.0) }
 		},
 		RectTile {
 			tile: Tile::Village,
@@ -27,7 +31,7 @@ fn main() {
 			tile: Tile::Mine,
 			bounds: RectBounds {
 				coords: Point::new(350.0, 250.0),
-				rect: Point::new(80.0, 50.0),
+				rect: Point::new(120.0, 110.0),
 			}
 		}
 	]);
