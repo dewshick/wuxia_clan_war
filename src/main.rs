@@ -1,8 +1,10 @@
 mod world_gen;
 mod colors;
 mod collision;
+mod std_extended;
 use self::world_gen::*;
 use self::collision::*;
+use self::std_extended::*;
 use piston_window::*;
 use rand::{thread_rng, Rng};
 
