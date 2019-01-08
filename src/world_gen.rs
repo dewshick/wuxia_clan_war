@@ -16,7 +16,7 @@ pub struct World { map : Map, trees : Vec<CircleBounds>, wanderers : Vec<MovingO
 
 pub fn generate_world(map : Map) -> World {
 	let mut trees : Vec<CircleBounds> = vec![];
-	let (tree_r_min, tree_r_max, tree_dist) = (8.0, 18., 10.0);
+	let (tree_r_min, tree_r_max, tree_dist) = (8., 18., 10.);
 
 	map.iter().for_each(|layer| {
 		if layer.tile == Tile::Forest {
@@ -77,7 +77,7 @@ fn render_map<G>(map : &Map, t : piston_window::math::Matrix2d, g : &mut G) wher
 	});
 }
 
-pub fn render_world<G>(world : &World, t : piston_window::math::Matrix2d, g : &mut G) where G : piston_window::Graphics  {
+pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g : &mut G) where G : piston_window::Graphics  {
 	render_map(&world.map, t, g);
 	let mut render_bounds = |bounds : &CircleBounds, color| {
 		let (upperx, uppery, side) = ((bounds.coords.x - bounds.r) as f64, (bounds.coords.y - bounds.r) as f64, 2.0 * bounds.r as f64);
@@ -85,4 +85,8 @@ pub fn render_world<G>(world : &World, t : piston_window::math::Matrix2d, g : &m
 	};
 	world.trees.iter().for_each( |tree| render_bounds(tree, solid_color(Brown)));
 	world.wanderers.iter().for_each( |w| render_bounds(&w.bounds, solid_color(Black)));
+	for i in 0..world.wanderers.len() {
+		let mut obstacles = world.trees.iter().chain(world.wanderers.iter().map(|w| &w.bounds));
+		world.wanderers[i] = move_to_target(&world.wanderers[i], &mut obstacles);
+	}
 }

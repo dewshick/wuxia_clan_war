@@ -46,7 +46,18 @@ pub fn can_add<'a, T>(obj : &CircleBounds, dist : Dist, obstacles : &mut T) -> b
 	!(obstacles.any(|obs| obs.coords.dist(&obj.coords) < obs.r + obj.r + dist))
 }
 
-pub fn avoid_collision(obj : &CircleBounds, obstacles : &[CircleBounds]) -> Direction {
+fn avoid_collision(obj : &CircleBounds, obstacles : &[CircleBounds]) -> Direction {
 	obstacles.iter().filter(|obs| obs.coords.dist(&obj.coords) < obs.r + obj.r).
 		fold(Direction::init(), |dir, obs| dir + (obs.coords - obj.coords).norm()).norm()
+}
+
+pub fn move_to_target<'a, T>(moved : &MovingObject, obstacles : &mut T) -> MovingObject
+where T : Iterator<Item=&'a CircleBounds> {
+	MovingObject {
+		bounds: CircleBounds {
+			r : moved.bounds.r,
+			coords: moved.bounds.coords + (moved.target - moved.bounds.coords).norm()
+		},
+		target: moved.target
+	}
 }

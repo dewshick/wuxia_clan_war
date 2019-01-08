@@ -12,7 +12,7 @@ const WHITE : types::Color = [1.0; 4];
 fn main() {
 	let mut window: PistonWindow =
 		WindowSettings::new("Hello Piston!", [640, 480]).exit_on_esc(true).build().unwrap();
-	let world = generate_world(vec![
+	let mut world = generate_world(vec![
 		RectTile {
 			tile: Tile::Water,
 			bounds: RectBounds { coords: Point::new(0.0, 0.0), rect: Point::new(640.0, 480.0) }
@@ -40,7 +40,7 @@ fn main() {
 	while let Some(event) = window.next() {
 		window.draw_2d(&event, |context, graphics| {
 			clear(WHITE, graphics);
-			render_world(&world, context.transform, graphics)
+			render_world(&mut world, context.transform, graphics)
 		});
 	}
 }
