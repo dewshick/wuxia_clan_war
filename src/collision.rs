@@ -1,6 +1,4 @@
-use piston_window::math::*;
 use std::ops::*;
-use std::num::*;
 
 pub type Coord = f32;
 pub type Dist = f32;
@@ -13,8 +11,8 @@ pub type Direction = Point;
 pub struct CircleBounds { pub coords : Coords, pub r : Dist }
 #[derive(Debug)]
 pub struct RectBounds { pub coords : Coords, pub rect : Size }
-pub struct ObjectWithBounds { name : String, bounds : CircleBounds, traits : [ObjectTraits] }
-enum ObjectTraits { Destructible }
+#[derive(Debug)]
+pub struct MovingObject { pub bounds : CircleBounds, pub target : Point }
 
 impl Point {
 	pub fn init() -> Direction { Point { x: 0.0, y : 0.0 } }
@@ -23,6 +21,15 @@ impl Point {
 	pub fn multf(&self, n : f32) -> Direction { Point::new(self.x * n, self.y * n) }
 	pub fn norm(&self) -> Direction { self.multf(1.0 / self.len()) }
 	pub fn dist(&self, p : &Coords) -> Dist { (*self - *p).len() }
+}
+
+impl CircleBounds {
+	pub fn on_layer(&self, layer : &RectBounds, dist_from_edge : f32) -> bool {
+		!(self.coords.x + self.r + dist_from_edge < layer.coords.x ||
+		self.coords.x - self.r - dist_from_edge > layer.coords.x + layer.rect.x ||
+		self.coords.y + self.r + dist_from_edge < layer.coords.y ||
+		self.coords.y - self.r - dist_from_edge > layer.coords.y  + layer.rect.y)
+	}
 }
 
 impl Sub for Point {
@@ -35,8 +42,8 @@ impl Add for Point {
 	fn add(self, p : Point) -> Point { Point { x : self.x + p.x, y : self.y + p.y } }
 }
 
-pub fn can_add(obj : &CircleBounds, dist : Dist, obstacles : &Vec<CircleBounds>) -> bool {
-	!obstacles.iter().any(|obs| obs.coords.dist(&obj.coords) < obs.r + obj.r + dist)
+pub fn can_add<'a, T>(obj : &CircleBounds, dist : Dist, obstacles : &mut T) -> bool where T : Iterator<Item=&'a CircleBounds> {
+	!(obstacles.any(|obs| obs.coords.dist(&obj.coords) < obs.r + obj.r + dist))
 }
 
 pub fn avoid_collision(obj : &CircleBounds, obstacles : &[CircleBounds]) -> Direction {
