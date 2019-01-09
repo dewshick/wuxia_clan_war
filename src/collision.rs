@@ -19,8 +19,12 @@ impl Point {
 	pub fn new(x : Coord, y : Coord) -> Point { Point { x, y } }
 	pub fn len(&self) -> Dist { (self.x.powi(2) + self.y.powi(2)).sqrt() }
 	pub fn multf(&self, n : f32) -> Direction { Point::new(self.x * n, self.y * n) }
-	pub fn norm(&self) -> Direction { self.multf(1.0 / self.len()) }
+	pub fn mults(&self, p : &Coords) -> Dist { p.x*self.x + p.y * self.y }
+	pub fn norm(&self) -> Direction {
+		if self.len() <= 0.001 { Point::init() } else { self.multf(1.0 / self.len()) }
+	}
 	pub fn dist(&self, p : &Coords) -> Dist { (*self - *p).len() }
+	pub fn ort(&self) -> Direction { Point { x: self.y, y: -self.x } }
 }
 
 impl CircleBounds {
@@ -46,18 +50,18 @@ pub fn can_add<'a, T>(obj : &CircleBounds, dist : Dist, obstacles : &mut T) -> b
 	!(obstacles.any(|obs| obs.coords.dist(&obj.coords) < obs.r + obj.r + dist))
 }
 
-fn avoid_collision(obj : &CircleBounds, obstacles : &[CircleBounds]) -> Direction {
-	obstacles.iter().filter(|obs| obs.coords.dist(&obj.coords) < obs.r + obj.r).
-		fold(Direction::init(), |dir, obs| dir + (obs.coords - obj.coords).norm()).norm()
+fn avoid_collision<'a, T>(obj : &MovingObject, obstacles : &mut T) -> Direction
+where T : Iterator<Item=&'a CircleBounds> {
+	obstacles.filter(|obs| obs.coords.dist(&obj.bounds.coords) < obs.r + obj.bounds.r &&
+		(obj.target - obj.bounds.coords).mults(&(obs.coords - obj.bounds.coords)) > 0.0
+	).fold(Direction::init(), |dir, obs| dir + (obs.coords - obj.bounds.coords).norm()).norm().ort()
 }
 
 pub fn move_to_target<'a, T>(moved : &MovingObject, obstacles : &mut T) -> MovingObject
 where T : Iterator<Item=&'a CircleBounds> {
+	let direction = ((moved.target - moved.bounds.coords).norm().multf(0.01) + avoid_collision(&moved, obstacles).multf(0.99)).norm();
 	MovingObject {
-		bounds: CircleBounds {
-			r : moved.bounds.r,
-			coords: moved.bounds.coords + (moved.target - moved.bounds.coords).norm()
-		},
+		bounds: CircleBounds { coords: moved.bounds.coords + direction, r : moved.bounds.r },
 		target: moved.target
 	}
 }
