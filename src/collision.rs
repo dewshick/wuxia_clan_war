@@ -59,7 +59,11 @@ where T : Iterator<Item=&'a CircleBounds> {
 
 pub fn move_to_target<'a, T>(moved : &MovingObject, obstacles : &mut T) -> MovingObject
 where T : Iterator<Item=&'a CircleBounds> {
-	let direction = ((moved.target - moved.bounds.coords).norm().multf(0.01) + avoid_collision(&moved, obstacles).multf(0.99)).norm();
+	let avoid_direction = avoid_collision(&moved, obstacles);
+	let direction = if avoid_direction.len() < 0.1 {
+		(moved.target - moved.bounds.coords).norm()
+	} else { avoid_direction };
+
 	MovingObject {
 		bounds: CircleBounds { coords: moved.bounds.coords + direction, r : moved.bounds.r },
 		target: moved.target

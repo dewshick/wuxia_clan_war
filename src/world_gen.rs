@@ -31,7 +31,7 @@ pub fn generate_world(map : Map) -> World {
 	let mut wanderers : Vec<MovingObject> = vec![];
 	let (wanderer_r, wanderer_dist) = (4.0, 1.0);
 	map.iter().find(|layer| layer.tile != Tile::Water).iter().for_each( |layer| {
-		for _ in 0..20 {
+		for _ in 0..200 {
 			let gen_wanderer = || try_n_times(100, &|| {
 				gen_circle_bounds(&layer.bounds, &mut trees.iter().chain(wanderers.iter().map(|mo| &mo.bounds)), wanderer_r, wanderer_dist)
 			});
@@ -59,10 +59,10 @@ fn gen_circle_bounds<'a, T>(layer : &RectBounds, existing_bounds : &mut T, r : f
 
 fn tile_color(t : &Tile) -> piston_window::types::Color {
 	match t {
-		Tile::Forest => solid_color(LawnGreen),
-		Tile::Village => solid_color(PaleGoldenRod),
-		Tile::Mine => solid_color(Gainsboro),
-		Tile::Water => solid_color(MediumBlue),
+		Tile::Forest => solid_color(ColorTone::LawnGreen),
+		Tile::Village => solid_color(ColorTone::PaleGoldenRod),
+		Tile::Mine => solid_color(ColorTone::Gainsboro),
+		Tile::Water => solid_color(ColorTone::MediumBlue),
 	}
 }
 
@@ -83,8 +83,8 @@ pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g 
 		let (upperx, uppery, side) = ((bounds.coords.x - bounds.r) as f64, (bounds.coords.y - bounds.r) as f64, 2.0 * bounds.r as f64);
 		piston_window::ellipse(color, [upperx, uppery, side, side], t, g);
 	};
-	world.trees.iter().for_each( |tree| render_bounds(tree, solid_color(Brown)));
-	world.wanderers.iter().for_each( |w| render_bounds(&w.bounds, solid_color(Black)));
+	world.trees.iter().for_each( |tree| render_bounds(tree, solid_color(ColorTone::Brown)));
+	world.wanderers.iter().for_each( |w| render_bounds(&w.bounds, solid_color(ColorTone::Black)));
 	for i in 0..world.wanderers.len() {
 		let mut obstacles = world.trees.iter().chain(world.wanderers.iter().map(|w| &w.bounds));
 		world.wanderers[i] = move_to_target(&world.wanderers[i], &mut obstacles);
