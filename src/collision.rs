@@ -67,7 +67,7 @@ where T : Iterator<Item=&'a CircleBounds> {
 		println!("{:?}", obj);
 		println!("obstacles: {}", count);
 	}
-	avoid.norm().ort() - avoid
+	(avoid.norm().ort() - avoid).multf(1.0/ count.max(1) as f32 )
 }
 
 pub fn move_to_target<'a, T>(moved : &MovingObject, obstacles : &mut T) -> MovingObject
