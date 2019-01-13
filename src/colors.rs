@@ -1,5 +1,6 @@
-use piston_window::types::{ColorComponent, Color};
-//pub use self::ColorTone::*;
+// copypasted color types from piston to have backend-independent code
+pub type Color = [ColorComponent; 4];
+pub type ColorComponent = f32;
 
 // colors from https://www.rapidtables.com/web/color/RGB_Color.html
 // they might sue me though

@@ -10,7 +10,7 @@ pub type Direction = Point;
 #[derive(Debug)]
 pub struct CircleBounds { pub coords : Coords, pub r : Dist }
 #[derive(Debug)]
-pub struct RectBounds { pub coords : Coords, pub rect : Size }
+pub struct RectBounds { pub coords : Coords, pub size: Size }
 #[derive(Debug)]
 pub struct MovingObject { pub bounds : CircleBounds, pub target : Point }
 
@@ -30,9 +30,9 @@ impl Point {
 impl CircleBounds {
 	pub fn on_layer(&self, layer : &RectBounds, dist_from_edge : f32) -> bool {
 		!(self.coords.x + self.r + dist_from_edge < layer.coords.x ||
-		self.coords.x - self.r - dist_from_edge > layer.coords.x + layer.rect.x ||
+		self.coords.x - self.r - dist_from_edge > layer.coords.x + layer.size.x ||
 		self.coords.y + self.r + dist_from_edge < layer.coords.y ||
-		self.coords.y - self.r - dist_from_edge > layer.coords.y  + layer.rect.y)
+		self.coords.y - self.r - dist_from_edge > layer.coords.y  + layer.size.y)
 	}
 }
 
@@ -54,19 +54,13 @@ fn avoid_collision<'a, T>(obj : &MovingObject, obstacles : &mut T) -> Direction
 where T : Iterator<Item=&'a CircleBounds> {
 
 	let active_obs = obstacles.filter(|obs| obs.coords.dist(&obj.bounds.coords) < obs.r + obj.bounds.r &&
-		(obj.target - obj.bounds.coords).mults(&(obs.coords - obj.bounds.coords)) > 0.0
+		(obj.target - obj.bounds.coords).mults(&(obs.coords - obj.bounds.coords)) > -0.1
 	);
 
 	let (avoid, count) = active_obs.fold((Direction::init(), 0), |(dir, count), obs| {
-		println!("obstacle {:?}", obs);
 		(dir + (obs.coords - obj.bounds.coords).norm().multf(obj.bounds.r + obs.r - obj.bounds.coords.dist(&obs.coords)), count + 1)
 	});
 
-	if avoid.len() > 1.0 {
-		println!("{}", avoid.len());
-		println!("{:?}", obj);
-		println!("obstacles: {}", count);
-	}
 	(avoid.norm().ort() - avoid).multf(1.0/ count.max(1) as f32 )
 }
 
@@ -80,7 +74,7 @@ where T : Iterator<Item=&'a CircleBounds> {
 	};
 
 	MovingObject {
-		bounds: CircleBounds { coords: (moved.bounds.coords + direction), r : moved.bounds.r },
+		bounds: CircleBounds { coords: (moved.bounds.coords + direction.multf(0.33)), r : moved.bounds.r },
 		target: moved.target
 	}
 }

@@ -1,6 +1,7 @@
 use super::colors::*;
 use super::collision::*;
 use super::std_extended::*;
+use super::colors::Color;
 
 //use piston_window::{rectangle, math::Matrix2d, Graphics, types::Color};
 #[derive(PartialEq, Eq, Debug)]
@@ -49,8 +50,8 @@ fn gen_circle_bounds<'a, T>(layer : &RectBounds, existing_bounds : &mut T, r : f
 //	const tree params
 		let bounds = CircleBounds {
 			coords: Point::new(
-				rng_range(r + layer.coords.x + dist, layer.coords.x + layer.rect.x - r - dist),
-				rng_range(r + layer.coords.y + dist, layer.coords.y + layer.rect.y - r - dist)
+				rng_range(r + layer.coords.x + dist, layer.coords.x + layer.size.x - r - dist),
+				rng_range(r + layer.coords.y + dist, layer.coords.y + layer.size.y - r - dist)
 			),
 			r
 		};
@@ -66,27 +67,42 @@ fn tile_color(t : &Tile) -> piston_window::types::Color {
 	}
 }
 
-// todo: check if background tile is not overlapping main tile
-fn render_map<G>(map : &Map, t : piston_window::math::Matrix2d, g : &mut G) where G : piston_window::Graphics {
-	map.iter().for_each(|layer| {
-		let rect = [
-			layer.bounds.coords.x as f64, layer.bounds.coords.y as f64,
-			layer.bounds.rect.x as f64, layer.bounds.rect.y as f64
-		];
-		piston_window::rectangle(tile_color(&layer.tile), rect, t, g);
-	});
+pub enum Bounds<'a> {
+	Rect { v : &'a RectBounds },
+	Circle { v : &'a CircleBounds }
+}
+pub struct RenderedShape<'a> { color : Color, bounds : Bounds<'a> }
+
+pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g : &mut G)
+	where G : piston_window::Graphics  {
+	for _ in 0..15 {
+		for i in 0..world.wanderers.len() {
+			let mut obstacles = world.trees.iter().chain(world.wanderers.iter().map(|w| &w.bounds));
+			world.wanderers[i] = move_to_target(&world.wanderers[i], &mut obstacles);
+		}
+	}
+
+	let rendered = world.map.iter().map(|layer| {
+		RenderedShape { bounds : Bounds::Rect { v : &layer.bounds }, color : tile_color(&layer.tile) }
+	}).chain(world.trees.iter().map(|tree| RenderedShape {
+		bounds: Bounds::Circle { v: tree }, color: solid_color(ColorTone::Brown)
+	})).chain(world.wanderers.iter().map( |w| RenderedShape {
+		bounds : Bounds::Circle { v : &w.bounds }, color:  solid_color(ColorTone::Black)
+	}));
+
+	render_scene(rendered.collect(), t, g);
 }
 
-pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g : &mut G) where G : piston_window::Graphics  {
-	render_map(&world.map, t, g);
-	let mut render_bounds = |bounds : &CircleBounds, color| {
-		let (upperx, uppery, side) = ((bounds.coords.x - bounds.r) as f64, (bounds.coords.y - bounds.r) as f64, 2.0 * bounds.r as f64);
-		piston_window::ellipse(color, [upperx, uppery, side, side], t, g);
-	};
-	world.trees.iter().for_each( |tree| render_bounds(tree, solid_color(ColorTone::Brown)));
-	world.wanderers.iter().for_each( |w| render_bounds(&w.bounds, solid_color(ColorTone::Black)));
-	for i in 0..world.wanderers.len() {
-		let mut obstacles = world.trees.iter().chain(world.wanderers.iter().map(|w| &w.bounds));
-		world.wanderers[i] = move_to_target(&world.wanderers[i], &mut obstacles);
-	}
+pub fn render_scene<G>(scene : Vec<RenderedShape>, t : piston_window::math::Matrix2d, g : &mut G)
+where G : piston_window::Graphics {
+	let vec2f64 = |vec : [f32; 4]| [vec[0] as f64, vec[1] as f64, vec[2] as f64, vec[3] as f64];
+
+	scene.iter().for_each(|shape| match shape.bounds {
+		Bounds::Rect { v : RectBounds { coords, size } } => {
+			piston_window::rectangle(shape.color, vec2f64([coords.x, coords.y, size.x, size.y]), t, g);
+		},
+		Bounds::Circle { v : CircleBounds { coords, r },  } => {
+			piston_window::ellipse(shape.color, vec2f64([coords.x - r, coords.y - r, 2.0 * r, 2.0 * r]), t, g);
+		},
+	})
 }
