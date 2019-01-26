@@ -6,8 +6,7 @@ use self::world_gen::*;
 use self::collision::*;
 use piston_window::*;
 use rand::{thread_rng, Rng};
-
-const WHITE : types::Color = [1.0; 4];
+use num_iter::range;
 
 fn main() {
 	let mut window: PistonWindow =
@@ -39,7 +38,6 @@ fn main() {
 
 	while let Some(event) = window.next() {
 		window.draw_2d(&event, |context, graphics| {
-			clear(WHITE, graphics);
 			render_world(&mut world, context.transform, graphics)
 		});
 	}

@@ -2,6 +2,7 @@ use super::colors::*;
 use super::collision::*;
 use super::std_extended::*;
 use super::colors::Color;
+use super::range;
 
 //use piston_window::{rectangle, math::Matrix2d, Graphics, types::Color};
 #[derive(PartialEq, Eq, Debug)]
@@ -45,7 +46,7 @@ pub fn generate_world(map : Map) -> World {
 	World { map, trees, wanderers }
 }
 
-fn gen_circle_bounds<'a, T>(layer : &RectBounds, existing_bounds : &mut T, r : f32, dist : f32) -> Option<CircleBounds>
+fn gen_circle_bounds<'a, T>(layer : &RectBounds, existing_bounds : &mut T, r : Dist, dist : Dist) -> Option<CircleBounds>
 	where T : Iterator<Item = &'a CircleBounds> {
 //	const tree params
 		let bounds = CircleBounds {
@@ -95,14 +96,39 @@ pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g 
 
 pub fn render_scene<G>(scene : Vec<RenderedShape>, t : piston_window::math::Matrix2d, g : &mut G)
 where G : piston_window::Graphics {
-	let vec2f64 = |vec : [f32; 4]| [vec[0] as f64, vec[1] as f64, vec[2] as f64, vec[3] as f64];
-
 	scene.iter().for_each(|shape| match shape.bounds {
 		Bounds::Rect { v : RectBounds { coords, size } } => {
-			piston_window::rectangle(shape.color, vec2f64([coords.x, coords.y, size.x, size.y]), t, g);
+			piston_window::rectangle(shape.color, [coords.x, coords.y, size.x, size.y], t, g);
 		},
 		Bounds::Circle { v : CircleBounds { coords, r },  } => {
-			piston_window::ellipse(shape.color, vec2f64([coords.x - r, coords.y - r, 2.0 * r, 2.0 * r]), t, g);
+			piston_window::ellipse(shape.color, [coords.x - r, coords.y - r, 2.0 * r, 2.0 * r], t, g);
 		},
 	})
+}
+
+// using unstructured triples representation as in piston
+pub fn render_circle(b : CircleBounds) -> Vec<[f64; 2]> {
+	use std::f64::consts::PI;
+	let center = [b.coords.x, b.coords.y];
+	let slice_count = (2.0 * b.r * PI) as i32; // length of circle is 2 * pi * r, 2 pixels per edge ~ 4 * r
+	let sector_len = (2.0 * PI) / (slice_count as f64);
+
+	let sector_point = |i| {
+		let rad_coord = (i % slice_count) as f64 * sector_len;
+		[rad_coord.sin() * b.r, rad_coord.cos() * b.r]
+	};
+	range(0, slice_count).flat_map(|i| {
+		let p1 = sector_point(i);
+		let p2 = sector_point(i + 1);
+		vec![p1, center, p2,center, p1, p2]
+	}).collect()
+}
+
+// using unstructured triples representation as in piston
+pub fn render_rect(b : RectBounds) -> Vec<[f64; 2]> {
+	let (x, y, xs, ys) = (b.coords.x, b.coords.y, b.coords.x + b.size.x, b.coords.y + b.size.y);
+	vec![
+		[x, y], [xs, y], [x, ys],
+		[x, ys], [xs, y], [xs, ys]
+	]
 }

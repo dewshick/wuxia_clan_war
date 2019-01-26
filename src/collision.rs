@@ -1,7 +1,7 @@
 use std::ops::*;
 
-pub type Coord = f32;
-pub type Dist = f32;
+pub type Coord = f64;
+pub type Dist = f64;
 #[derive(Copy, Clone, Debug)] // maybe we can get rid of that later and use reference for points
 pub struct Point { pub x : Coord, pub y : Coord }
 pub type Coords = Point;
@@ -18,7 +18,7 @@ impl Point {
 	pub fn init() -> Direction { Point { x: 0.0, y : 0.0 } }
 	pub fn new(x : Coord, y : Coord) -> Point { Point { x, y } }
 	pub fn len(&self) -> Dist { (self.x.powi(2) + self.y.powi(2)).sqrt() }
-	pub fn multf(&self, n : f32) -> Direction { Point::new(self.x * n, self.y * n) }
+	pub fn multf(&self, n : Dist) -> Direction { Point::new(self.x * n, self.y * n) }
 	pub fn mults(&self, p : &Coords) -> Dist { p.x*self.x + p.y * self.y }
 	pub fn norm(&self) -> Direction {
 		if self.len() <= 0.001 { Point::init() } else { self.multf(1.0 / self.len()) }
@@ -28,7 +28,7 @@ impl Point {
 }
 
 impl CircleBounds {
-	pub fn on_layer(&self, layer : &RectBounds, dist_from_edge : f32) -> bool {
+	pub fn on_layer(&self, layer : &RectBounds, dist_from_edge : Dist) -> bool {
 		!(self.coords.x + self.r + dist_from_edge < layer.coords.x ||
 		self.coords.x - self.r - dist_from_edge > layer.coords.x + layer.size.x ||
 		self.coords.y + self.r + dist_from_edge < layer.coords.y ||
@@ -61,7 +61,7 @@ where T : Iterator<Item=&'a CircleBounds> {
 		(dir + (obs.coords - obj.bounds.coords).norm().multf(obj.bounds.r + obs.r - obj.bounds.coords.dist(&obs.coords)), count + 1)
 	});
 
-	(avoid.norm().ort() - avoid).multf(1.0/ count.max(1) as f32 )
+	(avoid.norm().ort() - avoid).multf(1.0/ count.max(1) as f64 )
 }
 
 pub fn move_to_target<'a, T>(moved : &MovingObject, obstacles : &mut T) -> MovingObject
