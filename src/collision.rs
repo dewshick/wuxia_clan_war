@@ -64,7 +64,7 @@ where T : Iterator<Item=&'a CircleBounds> {
 	(avoid.norm().ort() - avoid).multf(1.0/ count.max(1) as f64 )
 }
 
-pub fn move_to_target<'a, T>(moved : &MovingObject, obstacles : &mut T) -> MovingObject
+pub fn move_to_target<'a, T>(moved : &MovingObject, obstacles : &mut T) -> Point
 where T : Iterator<Item=&'a CircleBounds> {
 	let avoid_direction = avoid_collision(&moved, obstacles);
 	let direction = if avoid_direction.len() < 0.0001 {
@@ -73,8 +73,5 @@ where T : Iterator<Item=&'a CircleBounds> {
 		avoid_direction
 	};
 
-	MovingObject {
-		bounds: CircleBounds { coords: (moved.bounds.coords + direction.multf(0.33)), r : moved.bounds.r },
-		target: moved.target
-	}
+	direction.multf(0.33)
 }

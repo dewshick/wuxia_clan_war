@@ -30,20 +30,20 @@ pub fn generate_world(map : Map) -> World {
 		}
 	});
 
-	let mut wanderers : Vec<MovingObject> = vec![];
+	let mut world = World { map, trees, wanderers : vec![] };
+	for _ in 0..200 {
+		gen_wanderer_bounds(&mut world).and_then(|b| gen_wanderer_bounds(&mut world).map(|dir| {
+			MovingObject { bounds: b, target: dir.coords }
+		})).map(|w| world.wanderers.push(w));
+	};
+	world
+}
+
+fn gen_wanderer_bounds(w : &mut World) -> Option<CircleBounds> {
 	let (wanderer_r, wanderer_dist) = (4.0, 1.0);
-	map.iter().find(|layer| layer.tile != Tile::Water).iter().for_each( |layer| {
-		for _ in 0..200 {
-			let gen_wanderer = || try_n_times(100, &|| {
-				gen_circle_bounds(&layer.bounds, &mut trees.iter().chain(wanderers.iter().map(|mo| &mo.bounds)), wanderer_r, wanderer_dist)
-			});
-
-			let wanderer = gen_wanderer().and_then(|b| gen_wanderer().map(|dir| MovingObject { bounds: b, target: dir.coords }));
-			wanderer.map(|w| wanderers.push(w));
-		}
-	});
-
-	World { map, trees, wanderers }
+		w.map.iter().find(|layer| layer.tile != Tile::Water).and_then(|layer| try_n_times(100, &|| {
+			gen_circle_bounds(&layer.bounds, &mut w.trees.iter().chain(w.wanderers.iter().map(|mo| &mo.bounds)), wanderer_r, wanderer_dist)
+		}))
 }
 
 fn gen_circle_bounds<'a, T>(layer : &RectBounds, existing_bounds : &mut T, r : Dist, dist : Dist) -> Option<CircleBounds>
@@ -78,8 +78,13 @@ pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g 
 	where G : piston_window::Graphics  {
 	for _ in 0..15 {
 		for i in 0..world.wanderers.len() {
+			let wanderer = &world.wanderers[i];
 			let mut obstacles = world.trees.iter().chain(world.wanderers.iter().map(|w| &w.bounds));
-			world.wanderers[i] = move_to_target(&world.wanderers[i], &mut obstacles);
+			if wanderer.target.dist(&wanderer.bounds.coords) < 1.0 {
+				gen_wanderer_bounds(world).map(|b| { world.wanderers[i].target = b.coords; });
+			} else {
+				world.wanderers[i].bounds.coords = wanderer.bounds.coords + move_to_target(wanderer, &mut obstacles);
+			}
 		}
 	}
 
