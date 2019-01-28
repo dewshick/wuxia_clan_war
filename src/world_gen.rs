@@ -14,27 +14,41 @@ pub struct RectTile { pub tile : Tile, pub bounds : RectBounds }
 type Map = Vec<RectTile>;
 
 #[derive(Debug)]
-pub struct World { map : Map, trees : Vec<CircleBounds>, wanderers : Vec<MovingObject> }
+struct GameObject {
+	pub bounds : CircleBounds,
+	traits : Vec<Trait>
+}
+
+impl GameObject {
+}
+
+#[derive(Debug)]
+enum Trait {
+	MovingTo(Point)
+}
+
+#[derive(Debug)]
+pub struct World { map : Map, objects : Vec<GameObject> }
 
 pub fn generate_world(map : Map) -> World {
-	let mut trees : Vec<CircleBounds> = vec![];
+	let mut gameObjects : Vec<GameObject> = vec![];
 	let (tree_r_min, tree_r_max, tree_dist) = (8., 18., 10.);
 
 	map.iter().for_each(|layer| {
 		if layer.tile == Tile::Forest {
 			while let Some(t) = try_n_times(100, &|| {
-				gen_circle_bounds(&(layer.bounds), &mut trees.iter(), rng_range(tree_r_min, tree_r_max), tree_dist)
-			}) { trees.push(t); }
+				gen_circle_bounds(&(layer.bounds), &mut gameObjects.iter().map (|obj| &obj.bounds), rng_range(tree_r_min, tree_r_max), tree_dist)
+			}) { gameObjects.push(GameObject{ bounds : t, traits : vec![]}); }
 		} else {
-			trees.retain(|tree| !tree.on_layer(&layer.bounds, tree_dist));
+			gameObjects.retain(|obj| !obj.bounds.on_layer(&layer.bounds, tree_dist));
 		}
 	});
 
-	let mut world = World { map, trees, wanderers : vec![] };
+	let mut world = World { map, objects: gameObjects };
 	for _ in 0..200 {
 		gen_wanderer_bounds(&mut world).and_then(|b| gen_wanderer_bounds(&mut world).map(|dir| {
-			MovingObject { bounds: b, target: dir.coords }
-		})).map(|w| world.wanderers.push(w));
+			GameObject { bounds: b, traits: vec![Trait::MovingTo(dir.coords)] }
+		})).map(|w| world.objects.push(w));
 	};
 	world
 }
@@ -42,7 +56,7 @@ pub fn generate_world(map : Map) -> World {
 fn gen_wanderer_bounds(w : &mut World) -> Option<CircleBounds> {
 	let (wanderer_r, wanderer_dist) = (4.0, 1.0);
 		w.map.iter().find(|layer| layer.tile != Tile::Water).and_then(|layer| try_n_times(100, &|| {
-			gen_circle_bounds(&layer.bounds, &mut w.trees.iter().chain(w.wanderers.iter().map(|mo| &mo.bounds)), wanderer_r, wanderer_dist)
+			gen_circle_bounds(&layer.bounds, &mut w.objects.iter().map(|o| &o.bounds), wanderer_r, wanderer_dist)
 		}))
 }
 
@@ -76,24 +90,26 @@ pub struct RenderedShape<'a> { color : Color, bounds : Bounds<'a> }
 
 pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g : &mut G)
 	where G : piston_window::Graphics  {
-	for _ in 0..15 {
-		for i in 0..world.wanderers.len() {
-			let wanderer = &world.wanderers[i];
-			let mut obstacles = world.trees.iter().chain(world.wanderers.iter().map(|w| &w.bounds));
-			if wanderer.target.dist(&wanderer.bounds.coords) < 1.0 {
-				gen_wanderer_bounds(world).map(|b| { world.wanderers[i].target = b.coords; });
-			} else {
-				world.wanderers[i].bounds.coords = wanderer.bounds.coords + move_to_target(wanderer, &mut obstacles);
+	for _ in 0..5 {
+		for i in 0..world.objects.len() {
+			let wanderer = &world.objects[i];
+			if let Some(Trait::MovingTo(target)) = wanderer.traits.first() {
+				let mut obstacles = world.objects.iter().map(|w| &w.bounds);
+				if target.dist(&wanderer.bounds.coords) < 1.0 {
+					gen_wanderer_bounds(world).map(|b| { world.objects[i].traits = vec![Trait::MovingTo(b.coords)]; });
+				} else {
+					world.objects[i].bounds.coords = wanderer.bounds.coords +
+						move_to_target(&wanderer.bounds, target, &mut obstacles);
+				}
 			}
 		}
 	}
 
 	let rendered = world.map.iter().map(|layer| {
 		RenderedShape { bounds : Bounds::Rect { v : &layer.bounds }, color : tile_color(&layer.tile) }
-	}).chain(world.trees.iter().map(|tree| RenderedShape {
-		bounds: Bounds::Circle { v: tree }, color: solid_color(ColorTone::Brown)
-	})).chain(world.wanderers.iter().map( |w| RenderedShape {
-		bounds : Bounds::Circle { v : &w.bounds }, color:  solid_color(ColorTone::Black)
+	}).chain(world.objects.iter().map(|obj| RenderedShape {
+		bounds: Bounds::Circle { v: &obj.bounds },
+		color: solid_color(if obj.traits.len() > 0 { ColorTone::Black } else { ColorTone::Brown }) //wanderers are black, trees are brown
 	}));
 
 	render_scene(rendered.collect(), t, g);

@@ -50,25 +50,24 @@ pub fn can_add<'a, T>(obj : &CircleBounds, dist : Dist, obstacles : &mut T) -> b
 	!(obstacles.any(|obs| obs.coords.dist(&obj.coords) < obs.r + obj.r + dist))
 }
 
-fn avoid_collision<'a, T>(obj : &MovingObject, obstacles : &mut T) -> Direction
+fn avoid_collision<'a, T>(bounds : &CircleBounds, target : &Point, obstacles : &mut T) -> Direction
 where T : Iterator<Item=&'a CircleBounds> {
-
-	let active_obs = obstacles.filter(|obs| obs.coords.dist(&obj.bounds.coords) < obs.r + obj.bounds.r &&
-		(obj.target - obj.bounds.coords).mults(&(obs.coords - obj.bounds.coords)) > -0.1
+	let active_obs = obstacles.filter(|obs| obs.coords.dist(&bounds.coords) < obs.r + bounds.r &&
+		(*target - bounds.coords).mults(&(obs.coords - bounds.coords)) > -0.1
 	);
 
 	let (avoid, count) = active_obs.fold((Direction::init(), 0), |(dir, count), obs| {
-		(dir + (obs.coords - obj.bounds.coords).norm().multf(obj.bounds.r + obs.r - obj.bounds.coords.dist(&obs.coords)), count + 1)
+		(dir + (obs.coords - bounds.coords).norm().multf(bounds.r + obs.r - bounds.coords.dist(&obs.coords)), count + 1)
 	});
 
 	(avoid.norm().ort() - avoid).multf(1.0/ count.max(1) as f64 )
 }
 
-pub fn move_to_target<'a, T>(moved : &MovingObject, obstacles : &mut T) -> Point
+pub fn move_to_target<'a, T>(bounds : &CircleBounds, target : &Point, obstacles : &mut T) -> Point
 where T : Iterator<Item=&'a CircleBounds> {
-	let avoid_direction = avoid_collision(&moved, obstacles);
+	let avoid_direction = avoid_collision(bounds, target, obstacles);
 	let direction = if avoid_direction.len() < 0.0001 {
-		(moved.target - moved.bounds.coords).norm()
+		(*target - bounds.coords).norm()
 	} else {
 		avoid_direction
 	};
