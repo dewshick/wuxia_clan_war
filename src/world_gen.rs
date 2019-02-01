@@ -16,14 +16,25 @@ type Map = Vec<RectTile>;
 #[derive(Debug)]
 struct GameObject {
 	pub bounds : CircleBounds,
-	traits : Vec<Trait>
+	pub color : ColorTone,
+	pub durability : f32,
+	pub speed : f32,
+	pub tasks : Vec<Task>
+//	pub onDeath :
 }
 
 impl GameObject {
+	fn tree(bounds : CircleBounds) -> GameObject {
+		GameObject { bounds, color : ColorTone::Brown, durability : 100.0, speed : -1.0, tasks : vec![] }
+	}
+
+	fn wanderer(bounds : CircleBounds, target : Point) -> GameObject {
+		GameObject { bounds, color : ColorTone::Black, durability : 20.0, speed : 0.33, tasks : vec![Task::MovingTo(target)] }
+	}
 }
 
 #[derive(Debug)]
-enum Trait {
+enum Task {
 	MovingTo(Point)
 }
 
@@ -38,7 +49,7 @@ pub fn generate_world(map : Map) -> World {
 		if layer.tile == Tile::Forest {
 			while let Some(t) = try_n_times(100, &|| {
 				gen_circle_bounds(&(layer.bounds), &mut gameObjects.iter().map (|obj| &obj.bounds), rng_range(tree_r_min, tree_r_max), tree_dist)
-			}) { gameObjects.push(GameObject{ bounds : t, traits : vec![]}); }
+			}) { gameObjects.push(GameObject::tree(t)); }
 		} else {
 			gameObjects.retain(|obj| !obj.bounds.on_layer(&layer.bounds, tree_dist));
 		}
@@ -46,9 +57,7 @@ pub fn generate_world(map : Map) -> World {
 
 	let mut world = World { map, objects: gameObjects };
 	for _ in 0..200 {
-		gen_wanderer_bounds(&mut world).and_then(|b| gen_wanderer_bounds(&mut world).map(|dir| {
-			GameObject { bounds: b, traits: vec![Trait::MovingTo(dir.coords)] }
-		})).map(|w| world.objects.push(w));
+		gen_wanderer_bounds(&mut world).and_then(|b| gen_wanderer_bounds(&mut world).map(|dir| world.objects.push(GameObject::wanderer(b, dir.coords))));
 	};
 	world
 }
@@ -75,10 +84,10 @@ fn gen_circle_bounds<'a, T>(layer : &RectBounds, existing_bounds : &mut T, r : D
 
 fn tile_color(t : &Tile) -> piston_window::types::Color {
 	match t {
-		Tile::Forest => solid_color(ColorTone::LawnGreen),
-		Tile::Village => solid_color(ColorTone::PaleGoldenRod),
-		Tile::Mine => solid_color(ColorTone::Gainsboro),
-		Tile::Water => solid_color(ColorTone::MediumBlue),
+		Tile::Forest => solid_color(&ColorTone::LawnGreen),
+		Tile::Village => solid_color(&ColorTone::PaleGoldenRod),
+		Tile::Mine => solid_color(&ColorTone::Gainsboro),
+		Tile::Water => solid_color(&ColorTone::MediumBlue),
 	}
 }
 
@@ -93,10 +102,10 @@ pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g 
 	for _ in 0..5 {
 		for i in 0..world.objects.len() {
 			let wanderer = &world.objects[i];
-			if let Some(Trait::MovingTo(target)) = wanderer.traits.first() {
+			if let Some(Task::MovingTo(target)) = wanderer.tasks.first() {
 				let mut obstacles = world.objects.iter().map(|w| &w.bounds);
 				if target.dist(&wanderer.bounds.coords) < 1.0 {
-					gen_wanderer_bounds(world).map(|b| { world.objects[i].traits = vec![Trait::MovingTo(b.coords)]; });
+					gen_wanderer_bounds(world).map(|b| { world.objects[i].tasks = vec![Task::MovingTo(b.coords)]; });
 				} else {
 					world.objects[i].bounds.coords = wanderer.bounds.coords +
 						move_to_target(&wanderer.bounds, target, &mut obstacles);
@@ -109,7 +118,7 @@ pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g 
 		RenderedShape { bounds : Bounds::Rect { v : &layer.bounds }, color : tile_color(&layer.tile) }
 	}).chain(world.objects.iter().map(|obj| RenderedShape {
 		bounds: Bounds::Circle { v: &obj.bounds },
-		color: solid_color(if obj.traits.len() > 0 { ColorTone::Black } else { ColorTone::Brown }) //wanderers are black, trees are brown
+		color: solid_color(&obj.color)
 	}));
 
 	render_scene(rendered.collect(), t, g);

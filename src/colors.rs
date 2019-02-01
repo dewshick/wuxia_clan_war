@@ -5,6 +5,7 @@ pub type ColorComponent = f32;
 // colors from https://www.rapidtables.com/web/color/RGB_Color.html
 // they might sue me though
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum ColorTone {
 	Maroon,
 	DarkRed,
@@ -147,11 +148,11 @@ pub enum ColorTone {
 	White
 }
 
-pub fn solid_color(tone : ColorTone) -> Color {
-	color(tone, 1.0)
+pub fn solid_color(tone : &ColorTone) -> Color {
+	color(&tone, 1.0)
 }
 
-pub fn color(tone : ColorTone, opacity : ColorComponent) -> Color {
+pub fn color(tone : &ColorTone, opacity : ColorComponent) -> Color {
 	let (r, g, b) = match tone {
 		ColorTone::Maroon => (128, 0, 0),
 		ColorTone::DarkRed => (139, 0, 0),
