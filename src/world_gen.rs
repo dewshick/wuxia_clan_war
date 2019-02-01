@@ -17,10 +17,9 @@ type Map = Vec<RectTile>;
 struct GameObject {
 	pub bounds : CircleBounds,
 	pub color : ColorTone,
-	pub durability : f32,
-	pub speed : f32,
+	pub durability : Amount,
+	pub speed : Dist,
 	pub tasks : Vec<Task>
-//	pub onDeath :
 }
 
 impl GameObject {
@@ -108,7 +107,7 @@ pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g 
 					gen_wanderer_bounds(world).map(|b| { world.objects[i].tasks = vec![Task::MovingTo(b.coords)]; });
 				} else {
 					world.objects[i].bounds.coords = wanderer.bounds.coords +
-						move_to_target(&wanderer.bounds, target, &mut obstacles);
+						move_to_target(&wanderer.bounds, target, &mut obstacles, wanderer.speed);
 				}
 			}
 		}
