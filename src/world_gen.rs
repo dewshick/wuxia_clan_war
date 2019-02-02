@@ -3,6 +3,7 @@ use super::collision::*;
 use super::std_extended::*;
 use super::colors::Color;
 use super::range;
+use itertools::Itertools;
 
 //use piston_window::{rectangle, math::Matrix2d, Graphics, types::Color};
 #[derive(PartialEq, Eq, Debug)]
@@ -125,10 +126,14 @@ pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g 
 
 pub fn render_scene<G>(scene : Vec<RenderedShape>, t : piston_window::math::Matrix2d, g : &mut G)
 where G : piston_window::Graphics {
-	scene.iter().for_each(|shape| g.tri_list(&Default::default(), &shape.color, |f| match shape.bounds {
-		Bounds::Rect { v } => f(&(rect_tri(v, t)[..])),
-		Bounds::Circle { v } => f(&(circle_tri(v, t)[..])),
-	}));
+	scene.iter().group_by(|shape| &shape.color).into_iter().for_each(|(color, items)| {
+		let vertices : Vec<[f32;2]> = items.into_iter().flat_map(|shape| match shape.bounds {
+			Bounds::Rect { v } => rect_tri(v, t),
+			Bounds::Circle { v } => circle_tri(v, t),
+		}).collect();
+
+		g.tri_list(&Default::default(), color, |f| f(&vertices[..]))
+	});
 }
 
 // using unstructured triples representation as in piston
