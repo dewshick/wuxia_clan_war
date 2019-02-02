@@ -12,8 +12,6 @@ pub type Direction = Point;
 pub struct CircleBounds { pub coords : Coords, pub r : Dist }
 #[derive(Debug)]
 pub struct RectBounds { pub coords : Coords, pub size: Size }
-#[derive(Debug)]
-pub struct MovingObject { pub bounds : CircleBounds, pub target : Point }
 
 impl Point {
 	pub fn init() -> Direction { Point { x: 0.0, y : 0.0 } }

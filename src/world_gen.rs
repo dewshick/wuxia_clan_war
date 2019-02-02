@@ -41,20 +41,20 @@ enum Task {
 pub struct World { map : Map, objects : Vec<GameObject> }
 
 pub fn generate_world(map : Map) -> World {
-	let mut gameObjects : Vec<GameObject> = vec![];
+	let mut game_objects : Vec<GameObject> = vec![];
 	let (tree_r_min, tree_r_max, tree_dist) = (8., 18., 10.);
 
 	map.iter().for_each(|layer| {
 		if layer.tile == Tile::Forest {
 			while let Some(t) = try_n_times(100, &|| {
-				gen_circle_bounds(&(layer.bounds), &mut gameObjects.iter().map (|obj| &obj.bounds), rng_range(tree_r_min, tree_r_max), tree_dist)
-			}) { gameObjects.push(GameObject::tree(t)); }
+				gen_circle_bounds(&(layer.bounds), &mut game_objects.iter().map (|obj| &obj.bounds), rng_range(tree_r_min, tree_r_max), tree_dist)
+			}) { game_objects.push(GameObject::tree(t)); }
 		} else {
-			gameObjects.retain(|obj| !obj.bounds.on_layer(&layer.bounds, tree_dist));
+			game_objects.retain(|obj| !obj.bounds.on_layer(&layer.bounds, tree_dist));
 		}
 	});
 
-	let mut world = World { map, objects: gameObjects };
+	let mut world = World { map, objects: game_objects };
 	for _ in 0..200 {
 		gen_wanderer_bounds(&mut world).and_then(|b| gen_wanderer_bounds(&mut world).map(|dir| world.objects.push(GameObject::wanderer(b, dir.coords))));
 	};
@@ -125,39 +125,44 @@ pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g 
 
 pub fn render_scene<G>(scene : Vec<RenderedShape>, t : piston_window::math::Matrix2d, g : &mut G)
 where G : piston_window::Graphics {
-	scene.iter().for_each(|shape| match shape.bounds {
-		Bounds::Rect { v : RectBounds { coords, size } } => {
-			piston_window::rectangle(shape.color, [coords.x, coords.y, size.x, size.y], t, g);
-		},
-		Bounds::Circle { v : CircleBounds { coords, r },  } => {
-			piston_window::ellipse(shape.color, [coords.x - r, coords.y - r, 2.0 * r, 2.0 * r], t, g);
-		},
-	})
+	scene.iter().for_each(|shape| g.tri_list(&Default::default(), &shape.color, |f| match shape.bounds {
+		Bounds::Rect { v } => f(&(rect_tri(v, t)[..])),
+		Bounds::Circle { v } => f(&(circle_tri(v, t)[..])),
+	}));
 }
 
 // using unstructured triples representation as in piston
-pub fn render_circle(b : CircleBounds) -> Vec<[f64; 2]> {
+pub fn circle_tri(b : &CircleBounds, t : piston_window::math::Matrix2d) -> Vec<[f32; 2]> {
 	use std::f64::consts::PI;
-	let center = [b.coords.x, b.coords.y];
-	let slice_count = (2.0 * b.r * PI) as i32; // length of circle is 2 * pi * r, 2 pixels per edge ~ 4 * r
-	let sector_len = (2.0 * PI) / (slice_count as f64);
+	let center = [b.coords.x as Dist, b.coords.y as Dist];
+	let slice_count = (2.0 * (b.r as Dist) * PI) as i32; // length of circle is 2 * pi * r, 2 pixels per edge ~ 4 * r
+	let sector_len = (2.0 * PI) / (slice_count as Dist /*as f64*/);
 
 	let sector_point = |i| {
-		let rad_coord = (i % slice_count) as f64 * sector_len;
-		[rad_coord.sin() * b.r, rad_coord.cos() * b.r]
+		let rad_coord = (i % slice_count) as Dist * sector_len;
+		[rad_coord.sin() * b.r + b.coords.x as Dist, rad_coord.cos() * b.r + b.coords.y as Dist]
 	};
 	range(0, slice_count).flat_map(|i| {
 		let p1 = sector_point(i);
 		let p2 = sector_point(i + 1);
-		vec![p1, center, p2,center, p1, p2]
+		vec![txy(t,p1), txy(t, center), txy(t,p2), txy(t,center), txy(t,p1), txy(t,p2)]
 	}).collect()
 }
 
 // using unstructured triples representation as in piston
-pub fn render_rect(b : RectBounds) -> Vec<[f64; 2]> {
-	let (x, y, xs, ys) = (b.coords.x, b.coords.y, b.coords.x + b.size.x, b.coords.y + b.size.y);
+pub fn rect_tri(b : &RectBounds, t : piston_window::math::Matrix2d) -> Vec<[f32; 2]> {
+	let (x, y, xs, ys) = (b.coords.x as Dist, b.coords.y as Dist, (b.coords.x + b.size.x) as Dist, (b.coords.y + b.size.y) as Dist);
 	vec![
-		[x, y], [xs, y], [x, ys],
-		[x, ys], [xs, y], [xs, ys]
+		txy(t,[x, y]), txy(t,[xs, y]), txy(t,[x, ys]),
+		txy(t, [x, ys]), txy(t,[xs, y]), txy(t,[xs, ys])
+	]
+}
+
+/// Transformed x coordinate as f32.
+#[inline(always)]
+fn txy(m: piston_window::math::Matrix2d, xy : [f64;2]) -> [f32;2] {
+	[
+		(m[0][0] * xy[0] + m[0][1] * xy[1] + m[0][2]) as f32,
+		(m[1][0] * xy[0] + m[1][1] * xy[1] + m[1][2]) as f32
 	]
 }
