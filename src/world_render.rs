@@ -1,4 +1,5 @@
 use super::world_gen::*;
+use super::world_update::*;
 use super::colors::*;
 use crate::collision::*;
 use ggez::graphics::MeshBuilder;
@@ -22,30 +23,12 @@ pub enum Bounds<'a> {
 
 impl World {
 	pub fn to_scene(&mut self) -> Vec<RenderedShape> {
-		for _ in 0..5 {
-			for i in 0..self.objects.len() {
-				let wanderer = &self.objects[i];
-				if let Some(Task::MovingTo(target)) = wanderer.tasks.first() {
-					let mut obstacles = self.objects.iter().map(|w| &w.bounds);
-					if target.dist(&wanderer.bounds.coords) < 1.0 {
-						gen_wanderer_bounds(self).map(|b| { self.objects[i].tasks = vec![Task::MovingTo(b.coords)]; });
-					} else {
-						self.objects[i].bounds.coords = wanderer.bounds.coords +
-							move_to_target(&wanderer.bounds, target, &mut obstacles, wanderer.speed);
-					}
-				}
-			}
-		}
-
-		let rendered = self.map.iter().map(|layer| {
+		self.map.iter().map(|layer| {
 			RenderedShape { bounds : Bounds::Rect { v : &layer.bounds }, color : tile_color(&layer.tile) }
 		}).chain(self.objects.iter().map(|obj| RenderedShape {
 			bounds: Bounds::Circle { v: &obj.bounds },
 			color: solid_color(&obj.color)
-		}));
-
-		rendered.collect()
-//	render_scene(rendered.collect(), t, g);
+		})).collect()
 	}
 }
 
@@ -74,6 +57,7 @@ impl EventHandler for WorldWithDebugInfo {
 // ggez-related rendering
 impl EventHandler for World {
 	fn update(&mut self, _ctx: &mut Context) -> GameResult {
+		self.upd();
 		Ok(())
 	}
 
