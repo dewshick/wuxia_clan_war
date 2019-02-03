@@ -8,7 +8,8 @@ use self::collision::*;
 use self::world_render::*;
 use piston_window::*;
 use rand::{thread_rng, Rng};
-use num_iter::range;
+extern crate fps_counter;
+
 
 fn main() {
 	let mut window: PistonWindow =
@@ -37,10 +38,11 @@ fn main() {
 			}
 		}
 	]);
-
+	let mut fps = fps_counter::FPSCounter::new();
 	while let Some(event) = window.next() {
 		window.draw_2d(&event, |context, graphics| {
 			render_world(&mut world, context.transform, graphics)
 		});
+		println!("{}", fps.tick());
 	}
 }
