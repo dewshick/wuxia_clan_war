@@ -1,11 +1,7 @@
 use super::colors::*;
 use super::collision::*;
 use super::std_extended::*;
-use super::colors::Color;
-use super::range;
-use itertools::Itertools;
 
-//use piston_window::{rectangle, math::Matrix2d, Graphics, types::Color};
 #[derive(PartialEq, Eq, Debug)]
 pub enum Tile { Forest, Village, Mine, Water }
 
@@ -80,10 +76,4 @@ fn gen_circle_bounds<'a, T>(layer : &RectBounds, existing_bounds : &mut T, r : D
 			r
 		};
 		if can_add(&bounds, dist, existing_bounds) { Some(bounds) } else { None }
-}
-
-
-pub enum Bounds<'a> {
-	Rect { v : &'a RectBounds },
-	Circle { v : &'a CircleBounds }
 }

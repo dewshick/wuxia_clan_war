@@ -6,6 +6,11 @@ use itertools::Itertools;
 
 pub struct RenderedShape<'a> { color : Color, bounds : Bounds<'a> }
 
+pub enum Bounds<'a> {
+	Rect { v : &'a RectBounds },
+	Circle { v : &'a CircleBounds }
+}
+
 pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g : &mut G)
 	where G : piston_window::Graphics  {
 	for _ in 0..5 {
