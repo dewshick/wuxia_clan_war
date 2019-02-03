@@ -6,14 +6,11 @@ mod world_render;
 use self::world_gen::*;
 use self::collision::*;
 use self::world_render::*;
-use piston_window::*;
 use rand::{thread_rng, Rng};
 extern crate fps_counter;
 
 
 fn main() {
-	let mut window: PistonWindow =
-		WindowSettings::new("Hello Piston!", [640, 480]).exit_on_esc(true).build().unwrap();
 	let mut world = generate_world(vec![
 		RectTile {
 			tile: Tile::Water,
@@ -38,11 +35,5 @@ fn main() {
 			}
 		}
 	]);
-	let mut fps = fps_counter::FPSCounter::new();
-	while let Some(event) = window.next() {
-		window.draw_2d(&event, |context, graphics| {
-			render_world(&mut world, context.transform, graphics)
-		});
-		println!("{}", fps.tick());
-	}
+	ggez_loop(world);
 }

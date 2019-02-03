@@ -3,6 +3,19 @@ use super::colors::*;
 use crate::collision::*;
 use num_iter::range;
 use itertools::Itertools;
+use ggez::graphics::MeshBuilder;
+use ggez::graphics::DrawMode;
+use ggez::graphics::Rect;
+use ggez::nalgebra::Point2;
+use ggez::event;
+use ggez::Context;
+use ggez::error::GameResult;
+use ggez::graphics::{clear, draw, present};
+use ggez::graphics::Mesh;
+use piston_window::*;
+use fps_counter::FPSCounter;
+use ggez::event::EventHandler;
+use ggez::error::GameError;
 
 pub struct RenderedShape<'a> { color : Color, bounds : Bounds<'a> }
 
@@ -11,33 +24,78 @@ pub enum Bounds<'a> {
 	Circle { v : &'a CircleBounds }
 }
 
-pub fn render_world<G>(world : &mut World, t : piston_window::math::Matrix2d, g : &mut G)
-	where G : piston_window::Graphics  {
-	for _ in 0..5 {
-		for i in 0..world.objects.len() {
-			let wanderer = &world.objects[i];
-			if let Some(Task::MovingTo(target)) = wanderer.tasks.first() {
-				let mut obstacles = world.objects.iter().map(|w| &w.bounds);
-				if target.dist(&wanderer.bounds.coords) < 1.0 {
-					gen_wanderer_bounds(world).map(|b| { world.objects[i].tasks = vec![Task::MovingTo(b.coords)]; });
-				} else {
-					world.objects[i].bounds.coords = wanderer.bounds.coords +
-						move_to_target(&wanderer.bounds, target, &mut obstacles, wanderer.speed);
+impl World {
+	pub fn to_scene(&mut self) -> Vec<RenderedShape> {
+		for _ in 0..5 {
+			for i in 0..self.objects.len() {
+				let wanderer = &self.objects[i];
+				if let Some(Task::MovingTo(target)) = wanderer.tasks.first() {
+					let mut obstacles = self.objects.iter().map(|w| &w.bounds);
+					if target.dist(&wanderer.bounds.coords) < 1.0 {
+						gen_wanderer_bounds(self).map(|b| { self.objects[i].tasks = vec![Task::MovingTo(b.coords)]; });
+					} else {
+						self.objects[i].bounds.coords = wanderer.bounds.coords +
+							move_to_target(&wanderer.bounds, target, &mut obstacles, wanderer.speed);
+					}
 				}
 			}
 		}
+
+		let rendered = self.map.iter().map(|layer| {
+			RenderedShape { bounds : Bounds::Rect { v : &layer.bounds }, color : tile_color(&layer.tile) }
+		}).chain(self.objects.iter().map(|obj| RenderedShape {
+			bounds: Bounds::Circle { v: &obj.bounds },
+			color: solid_color(&obj.color)
+		}));
+
+		rendered.collect()
+//	render_scene(rendered.collect(), t, g);
 	}
-
-	let rendered = world.map.iter().map(|layer| {
-		RenderedShape { bounds : Bounds::Rect { v : &layer.bounds }, color : tile_color(&layer.tile) }
-	}).chain(world.objects.iter().map(|obj| RenderedShape {
-		bounds: Bounds::Circle { v: &obj.bounds },
-		color: solid_color(&obj.color)
-	}));
-
-	render_scene(rendered.collect(), t, g);
 }
 
+struct WorldWithDebugInfo { world : World, fps : FPSCounter }
+
+impl event::EventHandler for WorldWithDebugInfo {
+	fn update(&mut self, ctx: &mut Context) -> GameResult {
+		self.world.update(ctx)
+	}
+
+	fn draw(&mut self, ctx: &mut Context) -> GameResult {
+		println!("{}", self.fps.tick());
+		self.world.draw(ctx)
+	}
+}
+
+// ggez-related rendering
+impl event::EventHandler for World {
+	fn update(&mut self, _ctx: &mut Context) -> GameResult {
+		Ok(())
+	}
+
+	fn draw(&mut self, ctx: &mut Context) -> GameResult {
+		clear(ctx, [0.0, 0.0, 0.0, 0.0].into());
+		let mesh: Mesh = self.to_scene().iter().fold(&mut MeshBuilder::new(), |mb, shape| match shape.bounds {
+			Bounds::Rect { v : RectBounds { coords, size } } => mb.rectangle(DrawMode::Fill, Rect::new(coords.x.clone() as f32, coords.y.clone() as f32, size.x.clone() as f32, size.y.clone() as f32), shape.color.into()),
+			Bounds::Circle { v : CircleBounds { coords, r } } => mb.circle(DrawMode::Fill, Point2::new(coords.x.clone() as f32, coords.y.clone() as f32), r.clone() as f32, 0.5, shape.color.into()),
+		}).build(ctx)?;
+
+		draw(ctx, &mesh, (Point2::new(0.0, 0.0),))?;
+		present(ctx)?;
+		Ok(())
+	}
+}
+
+//static mut FPS : fps_counter::FPSCounter = fps_counter::FPSCounter::new();
+
+pub fn ggez_loop(w : World) {
+	let cb = ggez::ContextBuilder::new("super_simple", "ggez");
+	let (ctx, event_loop) = &mut cb.build().unwrap();
+	event::run(ctx, event_loop, &mut WorldWithDebugInfo { world : w, fps : fps_counter::FPSCounter::new() });
+}
+
+
+
+// piston-related rendering
 pub fn render_scene<G>(scene : Vec<RenderedShape>, t : piston_window::math::Matrix2d, g : &mut G)
 	where G : piston_window::Graphics {
 	scene.iter().group_by(|shape| &shape.color).into_iter().for_each(|(color, items)| {
@@ -92,5 +150,18 @@ fn tile_color(t : &Tile) -> piston_window::types::Color {
 		Tile::Village => solid_color(&ColorTone::PaleGoldenRod),
 		Tile::Mine => solid_color(&ColorTone::Gainsboro),
 		Tile::Water => solid_color(&ColorTone::MediumBlue),
+	}
+}
+
+fn _piston_loop(world : &mut World) {
+	let mut window: PistonWindow =
+		WindowSettings::new("Hello Piston!", [640, 480]).exit_on_esc(true).build().unwrap();
+
+	let mut fps = fps_counter::FPSCounter::new();
+	while let Some(event) = window.next() {
+		window.draw_2d(&event, |context, graphics| {
+			render_scene(world.to_scene(), context.transform, graphics);
+		});
+		println!("{}", fps.tick());
 	}
 }
