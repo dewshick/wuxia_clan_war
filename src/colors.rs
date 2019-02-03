@@ -1,6 +1,4 @@
-// copypasted color types from piston to have backend-independent code
-pub type Color = [ColorComponent; 4];
-pub type ColorComponent = f32;
+use ggez::graphics::Color;
 
 // colors from https://www.rapidtables.com/web/color/RGB_Color.html
 // they might sue me though
@@ -149,10 +147,6 @@ pub enum ColorTone {
 }
 
 pub fn solid_color(tone : &ColorTone) -> Color {
-	color(&tone, 1.0)
-}
-
-pub fn color(tone : &ColorTone, opacity : ColorComponent) -> Color {
 	let (r, g, b) = match tone {
 		ColorTone::Maroon => (128, 0, 0),
 		ColorTone::DarkRed => (139, 0, 0),
@@ -295,5 +289,5 @@ pub fn color(tone : &ColorTone, opacity : ColorComponent) -> Color {
 		ColorTone::White => (255, 255, 255),
 	};
 
-	[(r as f32) / 255.0, (g as f32) / 255.0 , (b as f32) / 255.0, opacity]
+	Color::from_rgb(r, g, b)
 }

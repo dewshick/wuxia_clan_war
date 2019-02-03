@@ -11,14 +11,14 @@ extern crate fps_counter;
 
 
 fn main() {
-	let mut world = generate_world(vec![
+	let world = generate_world(vec![
 		RectTile {
 			tile: Tile::Water,
-			bounds: RectBounds { coords: Point::new(0.0, 0.0), size: Point::new(640.0, 480.0) }
+			bounds: RectBounds { coords: Point::new(0.0, 0.0), size: Point::new(800.0, 600.0) }
 		},
 		RectTile {
 			tile: Tile::Forest,
-			bounds: RectBounds { coords: Point::new(50.0, 50.0), size: Point::new(480.0, 320.0) }
+			bounds: RectBounds { coords: Point::new(50.0, 50.0), size: Point::new(720.0, 540.0) }
 		},
 		RectTile {
 			tile: Tile::Village,

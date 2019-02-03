@@ -1,8 +1,8 @@
 use std::ops::*;
 
-pub type Coord = f64;
-pub type Dist = f64;
-pub type Amount = f64;
+pub type Coord = f32;
+pub type Dist = f32;
+pub type Amount = f32;
 #[derive(Copy, Clone, Debug)] // maybe we can get rid of that later and use reference for points
 pub struct Point { pub x : Coord, pub y : Coord }
 pub type Coords = Point;
@@ -59,7 +59,7 @@ where T : Iterator<Item=&'a CircleBounds> {
 		(dir + (obs.coords - bounds.coords).norm().multf(bounds.r + obs.r - bounds.coords.dist(&obs.coords)), count + 1)
 	});
 
-	(avoid.norm().ort() - avoid).multf(1.0/ count.max(1) as f64 )
+	(avoid.norm().ort() - avoid).multf(1.0/ count.max(1) as Dist)
 }
 
 pub fn move_to_target<'a, T>(bounds : &CircleBounds, target : &Point, obstacles : &mut T, speed : Dist) -> Point
