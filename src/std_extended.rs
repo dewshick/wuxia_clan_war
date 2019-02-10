@@ -1,5 +1,7 @@
 use super::{thread_rng, Rng};
 use super::collision::Dist;
+use std::ops::Range;
+use num_iter::range;
 
 pub fn try_n_times<T>(attempts : i32, fun : &Fn() -> Option<T>) -> Option<T> {
 	if attempts <= 0 {
@@ -10,6 +12,10 @@ pub fn try_n_times<T>(attempts : i32, fun : &Fn() -> Option<T>) -> Option<T> {
 	}
 }
 
-pub fn rng_range(lb : Dist, ub : Dist) -> Dist {
-	thread_rng().gen_range(lb, ub)
+pub fn rng_range(range : &Range<Dist>) -> Dist {
+	if (range.start >= range.end) { range.start } else { thread_rng().gen_range(range.start, range.end) }
+}
+
+pub fn index_iter<T>(v : &Vec<T>) -> impl Iterator<Item=usize> {
+	range(0, v.len()).into_iter()
 }

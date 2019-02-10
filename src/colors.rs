@@ -3,7 +3,7 @@ use ggez::graphics::Color;
 // colors from https://www.rapidtables.com/web/color/RGB_Color.html
 // they might sue me though
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ColorTone {
 	Maroon,
 	DarkRed,

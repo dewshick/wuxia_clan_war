@@ -1,5 +1,4 @@
 use super::world_gen::*;
-use super::world_update::*;
 use super::colors::*;
 use crate::collision::*;
 use ggez::graphics::MeshBuilder;
@@ -27,7 +26,7 @@ impl World {
 			RenderedShape { bounds : Bounds::Rect { v : &layer.bounds }, color : tile_color(&layer.tile) }
 		}).chain(self.objects.iter().map(|obj| RenderedShape {
 			bounds: Bounds::Circle { v: &obj.bounds },
-			color: solid_color(&obj.color)
+			color: solid_color(&obj.blueprint.color)
 		})).collect()
 	}
 }

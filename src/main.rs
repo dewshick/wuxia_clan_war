@@ -35,6 +35,6 @@ fn main() {
 				size: Point::new(120.0, 110.0),
 			}
 		}
-	]);
+	], 400);
 	ggez_loop(world);
 }
