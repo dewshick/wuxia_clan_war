@@ -17,9 +17,9 @@ pub struct World { pub map : Map, pub objects : Vec<GameObj> }
 pub fn generate_world(map : Map, wanderers : i32) -> World {
 	let mut world = World { map, objects: vec![] };
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::TREE, None);
-	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::GRASS, Some(500));
 	add_objects(&mut world, Tile::Village, &GameObjBlueprint::WANDERER, Some(wanderers));
-	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::HARE, Some(200));
+	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::HARE, Some(1));
+	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::GRASS, None);
 	world
 }
 
@@ -45,7 +45,7 @@ pub fn add_objects(w : &mut World, tile : Tile, blueprint : &'static GameObjBlue
 }
 
 pub fn gen_circle_bounds(layer : &RectBounds, objects : &Vec<GameObj>, blueprint : &'static GameObjBlueprint) -> Option<CircleBounds> {
-	for _ in 0..30 {
+	for _ in 0..100 {
 		let r = rng_range(&blueprint.radius);
 		let bounds = CircleBounds {
 			coords: Point::new(

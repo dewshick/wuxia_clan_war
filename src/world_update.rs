@@ -10,6 +10,8 @@ use ordered_float::OrderedFloat;
 use self::TaskUpd::*;
 use std::collections::HashSet;
 use crate::std_extended::index_iter;
+use itertools::Itertools;
+//use crate::std_extended::with_index_iter;
 
 #[derive(Debug)]
 pub struct GameObj {
@@ -92,7 +94,7 @@ pub enum Size { Small, Big }
 #[derive(Debug, Clone)]
 pub enum Task {
 	Wander(),
-	GetTo(Point),
+	GetTo(CircleBounds),
 	Eat(Genus),
 }
 
@@ -116,18 +118,21 @@ impl GameObj {
 		if self.tasks.is_empty() {
 			TaskWait
 		} else {
-			match &self.tasks[0] {
+			match &self.tasks.last().unwrap() {
 				Task::Wander() => gen_circle_bounds(&w.map[1].bounds, &w.objects, &self.blueprint).
-					map( |b| TaskPush(Task::GetTo(b.coords))).unwrap_or(TaskWait),
-				Task::GetTo(target) => if target.dist(&self.bounds.coords) < 1.0 { TaskPop } else {
+					map( |b| TaskPush(Task::GetTo(b))).unwrap_or(TaskWait),
+				Task::GetTo(target) => if target.collides_with(&self.bounds) { TaskPop } else {
 					let mut obstacles = w.objects.iter().map(|w| &w.bounds);
-					TaskAct(Action::MoveTo(self.bounds.coords + move_to_target(&self.bounds, &target, &mut obstacles, self.blueprint.speed)))
+					TaskAct(Action::MoveTo(self.bounds.coords + move_to_target(&self.bounds, &target.coords, &mut obstacles, self.blueprint.speed)))
 				},
 				Task::Eat(genus) => {
 					if let Some((i, food)) = w.objects.iter().enumerate().filter( |(_, obj)| obj.blueprint.genus == *genus).
 						min_by_key( |(_, obj)| OrderedFloat(obj.bounds.coords.dist(&self.bounds.coords))) {
-						if food.bounds.coords.dist(&self.bounds.coords) < 1.0 { TaskAct(Action::Swallow(i))} else {
-							TaskPush(Task::GetTo(food.bounds.coords))
+						if food.bounds.collides_with(&self.bounds) {
+							println!("swallow!");
+							TaskAct(Action::Swallow(i))
+						} else {
+							TaskPush(Task::GetTo(food.bounds.clone()))
 						}
 					} else {
 						TaskPop
@@ -154,5 +159,6 @@ impl World {
 					Action::MoveTo(point) => self.objects[i].bounds.coords = point,
 				},
 			});
+		removed_objects.iter().sorted_by_key(|i| -(**i as i32)).for_each( |i| { println!("{}", i); self.objects.remove(*i); });
 	}
 }

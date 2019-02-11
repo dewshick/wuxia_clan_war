@@ -8,7 +8,7 @@ pub struct Point { pub x : Coord, pub y : Coord }
 pub type Coords = Point;
 pub type Size = Point;
 pub type Direction = Point;
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CircleBounds { pub coords : Coords, pub r : Dist }
 #[derive(Debug)]
 pub struct RectBounds { pub coords : Coords, pub size: Size }
@@ -32,6 +32,10 @@ impl CircleBounds {
 		self.coords.x - self.r - dist_from_edge > layer.coords.x + layer.size.x ||
 		self.coords.y + self.r + dist_from_edge < layer.coords.y ||
 		self.coords.y - self.r - dist_from_edge > layer.coords.y  + layer.size.y)
+	}
+
+	pub fn collides_with(&self, target : &CircleBounds) -> bool {
+		target.coords.dist(&self.coords) <= self.r + target.r
 	}
 }
 
