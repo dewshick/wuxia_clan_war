@@ -45,9 +45,6 @@ impl Add for Point {
 	fn add(self, p : Point) -> Point { Point { x : self.x + p.x, y : self.y + p.y } }
 }
 
-pub fn can_add<'a, T>(obj : &CircleBounds, dist : Dist, obstacles : &mut T) -> bool where T : Iterator<Item=&'a CircleBounds> {
-	!(obstacles.any(|obs| obs.coords.dist(&obj.coords) < obs.r + obj.r + dist))
-}
 
 fn avoid_collision<'a, T>(bounds : &CircleBounds, target : &Point, obstacles : &mut T) -> Direction
 where T : Iterator<Item=&'a CircleBounds> {

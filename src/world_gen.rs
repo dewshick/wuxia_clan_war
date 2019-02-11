@@ -16,35 +16,36 @@ pub struct World { pub map : Map, pub objects : Vec<GameObj> }
 
 pub fn generate_world(map : Map, wanderers : i32) -> World {
 	let mut world = World { map, objects: vec![] };
-	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::TREE, -1);
-	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::GRASS, -1);
-	add_objects(&mut world, Tile::Village, &GameObjBlueprint::WANDERER, 50);
-	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::HARE, 200);
+	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::TREE, None);
+	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::GRASS, Some(500));
+	add_objects(&mut world, Tile::Village, &GameObjBlueprint::WANDERER, Some(wanderers));
+	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::HARE, Some(200));
 	world
 }
 
-pub fn add_objects(w : &mut World, tile : Tile, blueprint : &'static GameObjBlueprint, count : i32) {
-	let map = &w.map;
+fn add_object(layer : &RectTile, objects : &mut Vec<GameObj>, blueprint : &'static GameObjBlueprint) -> bool {
+	let bounds = gen_circle_bounds(&layer.bounds, objects, blueprint);
+	if bounds.is_some() { objects.push(GameObj::from(&blueprint, bounds.unwrap())); true } else { false }
+}
+
+pub fn add_objects(w : &mut World, tile : Tile, blueprint : &'static GameObjBlueprint, count : Option<i32>) {
 	let objects = &mut w.objects;
-	map.iter().for_each(|layer| {
+	let map = &w.map;
+	map.iter().for_each( |layer| {
 		if layer.tile == tile {
-			if count > 0 {
-				while let Some(b) = gen_circle_bounds(&(layer.bounds), objects, &blueprint) {
-					objects.push(GameObj::from(&blueprint, b));
-				}
+			if count.is_none() {
+				loop { if !add_object(&layer, objects, blueprint) { break } }
 			} else {
-				for _ in 0..count {
-					gen_circle_bounds(&(layer.bounds), objects, &blueprint).map( |b| objects.push(GameObj::from(&blueprint, b)));
-				}
+				for _ in 0..count.unwrap() { add_object(&layer, objects, blueprint); }
 			}
 		} else {
-			objects.retain(|obj| !obj.bounds.on_layer(&layer.bounds, blueprint.min_dist));
+			objects.retain(|obj| !obj.bounds.on_layer(&layer.bounds, blueprint.min_dist) || obj.blueprint.name != blueprint.name);
 		}
 	});
 }
 
 pub fn gen_circle_bounds(layer : &RectBounds, objects : &Vec<GameObj>, blueprint : &'static GameObjBlueprint) -> Option<CircleBounds> {
-	try_n_times(100, &|| {
+	for _ in 0..30 {
 		let r = rng_range(&blueprint.radius);
 		let bounds = CircleBounds {
 			coords: Point::new(
@@ -53,6 +54,7 @@ pub fn gen_circle_bounds(layer : &RectBounds, objects : &Vec<GameObj>, blueprint
 			),
 			r
 		};
-		if can_add(&bounds, blueprint.min_dist, &mut objects.iter().map(|obj| &obj.bounds)) { Some(bounds) } else { None }
-	})
+		if !(objects.iter().any(|obs| { obs.bounds.coords.dist(&bounds.coords) < obs.bounds.r + bounds.r + blueprint.min_dist})) { return Some(bounds) }
+	}
+	return None
 }

@@ -3,7 +3,7 @@ use super::collision::Dist;
 use std::ops::Range;
 use num_iter::range;
 
-pub fn try_n_times<T>(attempts : i32, fun : &Fn() -> Option<T>) -> Option<T> {
+pub fn try_n_times<T>(attempts : i32, fun : &mut FnMut() -> Option<T>) -> Option<T> {
 	if attempts <= 0 {
 		None
 	} else {
@@ -13,7 +13,7 @@ pub fn try_n_times<T>(attempts : i32, fun : &Fn() -> Option<T>) -> Option<T> {
 }
 
 pub fn rng_range(range : &Range<Dist>) -> Dist {
-	if (range.start >= range.end) { range.start } else { thread_rng().gen_range(range.start, range.end) }
+	if range.start >= range.end { range.start } else { thread_rng().gen_range(range.start, range.end) }
 }
 
 pub fn index_iter<T>(v : &Vec<T>) -> impl Iterator<Item=usize> {

@@ -4,10 +4,7 @@ use crate::collision::Point;
 use crate::colors::ColorTone;
 use crate::collision::CircleBounds;
 use crate::collision::Amount;
-use crate::collision::Dist;
 use std::ops::Range;
-use crate::std_extended::rng_range;
-use crate::world_gen::Tile;
 use crate::world_gen::gen_circle_bounds;
 use ordered_float::OrderedFloat;
 use self::TaskUpd::*;
@@ -30,6 +27,7 @@ impl GameObj {
 
 #[derive(Debug, Clone)]
 pub struct GameObjBlueprint {
+	pub name : &'static str,
 	pub genus : Genus,
 	pub min_dist : f32, // required for worldgen
 	pub radius : Range<f32>,
@@ -41,6 +39,7 @@ pub struct GameObjBlueprint {
 
 impl GameObjBlueprint {
 	pub const TREE: GameObjBlueprint = GameObjBlueprint {
+		name : "Tree",
 		genus : Genus::Plant(Size::Big),
 		min_dist : 10.0,
 		radius: (8.0..18.0),
@@ -51,6 +50,7 @@ impl GameObjBlueprint {
 	};
 
 	pub const WANDERER: GameObjBlueprint = GameObjBlueprint {
+		name : "Wanderer",
 		genus : Genus::Animal(),
 		min_dist : 2.0,
 		radius: (4.0..4.0),
@@ -61,6 +61,7 @@ impl GameObjBlueprint {
 	};
 
 	pub const HARE : GameObjBlueprint = GameObjBlueprint {
+		name : "Hare",
 		genus : Genus::Animal(),
 		min_dist : 2.0,
 		radius: (3.0..3.0),
@@ -71,6 +72,7 @@ impl GameObjBlueprint {
 	};
 
 	pub const GRASS: GameObjBlueprint = GameObjBlueprint {
+		name : "Grass",
 		genus : Genus::Plant(Size::Small),
 		min_dist : 0.0,
 		radius: (2.0..2.0),
@@ -152,17 +154,5 @@ impl World {
 					Action::MoveTo(point) => self.objects[i].bounds.coords = point,
 				},
 			});
-//		for i in 0..self.objects.len() {
-//			let wanderer = &self.objects[i];
-//			if let Some(Task::GetTo(target)) = wanderer.tasks.first() {
-//				let mut obstacles = self.objects.iter().map(|w| &w.bounds);
-//				if target.dist(&wanderer.bounds.coords) < 1.0 {
-//					gen_circle_bounds(self).map(|b| { self.objects[i].tasks = vec![Task::GetTo(b.coords)]; });
-//				} else {
-//					self.objects[i].bounds.coords = wanderer.bounds.coords +
-//						move_to_target(&wanderer.bounds, &target, &mut obstacles, wanderer.speed);
-//				}
-//			}
-//		}
 	}
 }
