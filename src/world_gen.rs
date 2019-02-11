@@ -17,9 +17,9 @@ pub struct World { pub map : Map, pub objects : Vec<GameObj> }
 pub fn generate_world(map : Map, wanderers : i32) -> World {
 	let mut world = World { map, objects: vec![] };
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::TREE, None);
-	add_objects(&mut world, Tile::Village, &GameObjBlueprint::WANDERER, Some(wanderers));
-	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::HARE, Some(1));
+	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::HARE, Some(10));
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::GRASS, None);
+	add_objects(&mut world, Tile::Village, &GameObjBlueprint::WANDERER, Some(wanderers));
 	world
 }
 

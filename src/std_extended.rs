@@ -10,7 +10,3 @@ pub fn rng_range(range : &Range<Dist>) -> Dist {
 pub fn index_iter<T>(v : &Vec<T>) -> impl Iterator<Item=usize> {
 	range(0, v.len()).into_iter()
 }
-
-//pub fn with_index_iter<T>(v : &Vec<T>) -> impl Iterator<Item=(T, usize)> {
-//	range(0, v.len()).into_iter().map( |i| (v[i], i))
-//}

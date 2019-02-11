@@ -122,14 +122,13 @@ impl GameObj {
 				Task::Wander() => gen_circle_bounds(&w.map[1].bounds, &w.objects, &self.blueprint).
 					map( |b| TaskPush(Task::GetTo(b))).unwrap_or(TaskWait),
 				Task::GetTo(target) => if target.collides_with(&self.bounds) { TaskPop } else {
-					let mut obstacles = w.objects.iter().map(|w| &w.bounds);
+					let mut obstacles = w.objects.iter().filter(|o| o.blueprint.genus != Genus::Plant(Size::Small)).map(|o| &o.bounds);
 					TaskAct(Action::MoveTo(self.bounds.coords + move_to_target(&self.bounds, &target.coords, &mut obstacles, self.blueprint.speed)))
 				},
 				Task::Eat(genus) => {
 					if let Some((i, food)) = w.objects.iter().enumerate().filter( |(_, obj)| obj.blueprint.genus == *genus).
 						min_by_key( |(_, obj)| OrderedFloat(obj.bounds.coords.dist(&self.bounds.coords))) {
 						if food.bounds.collides_with(&self.bounds) {
-							println!("swallow!");
 							TaskAct(Action::Swallow(i))
 						} else {
 							TaskPush(Task::GetTo(food.bounds.clone()))
@@ -159,6 +158,6 @@ impl World {
 					Action::MoveTo(point) => self.objects[i].bounds.coords = point,
 				},
 			});
-		removed_objects.iter().sorted_by_key(|i| -(**i as i32)).for_each( |i| { println!("{}", i); self.objects.remove(*i); });
+		removed_objects.iter().sorted_by_key(|i| -(**i as i32)).for_each( |i| { self.objects.remove(*i); });
 	}
 }
