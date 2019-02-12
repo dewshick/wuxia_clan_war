@@ -15,11 +15,6 @@ use ggez::event::{EventHandler, run};
 
 pub struct RenderedShape<'a> { color : Color, bounds : Bounds<'a> }
 
-pub enum Bounds<'a> {
-	Rect { v : &'a RectBounds },
-	Circle { v : &'a CircleBounds }
-}
-
 impl World {
 	pub fn to_scene(&mut self) -> Vec<RenderedShape> {
 		self.map.iter().map(|layer| {

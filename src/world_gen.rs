@@ -7,6 +7,11 @@ use ordered_float::OrderedFloat;
 #[derive(PartialEq, Eq, Debug)]
 pub enum Tile { Forest, Village, Mine, Water }
 
+pub enum Bounds<'a> {
+	Rect { v : &'a RectBounds },
+	Circle { v : &'a CircleBounds }
+}
+
 #[derive(Debug)]
 pub struct RectTile { pub tile : Tile, pub bounds : RectBounds }
 
@@ -27,7 +32,7 @@ pub fn generate_world(map : Map, wanderers : i32) -> World {
 }
 
 fn add_object(layer : &RectTile, objects : &mut Vec<GameObj>, blueprint : &'static GameObjBlueprint) -> bool {
-	let bounds = gen_circle_bounds(&layer.bounds, objects, blueprint);
+	let bounds = gen_circle_bounds(&Bounds::Rect { v: &layer.bounds }, objects, blueprint);
 	if bounds.is_some() { objects.push(GameObj::from(&blueprint, bounds.unwrap())); true } else { false }
 }
 
@@ -47,16 +52,25 @@ pub fn add_objects(w : &mut World, tile : Tile, blueprint : &'static GameObjBlue
 	});
 }
 
-pub fn gen_circle_bounds(layer : &RectBounds, objects : &Vec<GameObj>, blueprint : &'static GameObjBlueprint) -> Option<CircleBounds> {
+//maybe support circular bounds too
+pub fn gen_circle_bounds(
+	center_bounds : &Bounds,
+	objects : &Vec<GameObj>,
+	blueprint : &'static GameObjBlueprint
+) -> Option<CircleBounds> {
 	for _ in 0..100 {
 		let r = rng_range(&blueprint.radius);
-		let bounds = CircleBounds {
-			coords: Point::new(
-				rng_range(&(r + layer.coords.x + blueprint.min_dist..layer.coords.x + layer.size.x - r - blueprint.min_dist)),
-				rng_range(&(r + layer.coords.y + blueprint.min_dist..layer.coords.y + layer.size.y - r - blueprint.min_dist))
+		let coords = match center_bounds {
+			Bounds::Rect { v } => Point::new(
+				rng_range(&(r + v.coords.x + blueprint.min_dist..v.coords.x + v.size.x - r - blueprint.min_dist)),
+				rng_range(&(r + v.coords.y + blueprint.min_dist..v.coords.y + v.size.y - r - blueprint.min_dist))
 			),
-			r
+			Bounds::Circle { v } => {
+				let (angle, dist) = (rng_range(&(0.0..2.0*std::f32::consts::PI)), rng_range(&(0.0..v.r)));
+				Point::new(v.coords.x + angle.sin() * dist, v.coords.y + angle.cos() * dist)
+			}
 		};
+		let bounds = CircleBounds { coords, r };
 		if !(objects.iter().any(|obs| { obs.bounds.coords.dist(&bounds.coords) < obs.bounds.r + bounds.r + blueprint.min_dist})) { return Some(bounds) }
 	}
 	return None

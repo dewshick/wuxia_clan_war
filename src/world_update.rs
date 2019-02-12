@@ -11,6 +11,9 @@ use self::TaskUpd::*;
 use std::collections::HashSet;
 use crate::std_extended::index_iter;
 use itertools::Itertools;
+use crate::collision::RectBounds;
+use crate::world_gen::Bounds;
+use crate::std_extended::rng_range;
 //use crate::std_extended::with_index_iter;
 
 #[derive(Debug)]
@@ -81,7 +84,7 @@ impl GameObjBlueprint {
 		color : ColorTone::DarkGreen,
 		durability : 20.0,
 		speed : 0.0,
-		tasks : &[]
+		tasks : &[Task::Reproduce]
 	};
 
 	pub const WOLF: GameObjBlueprint = GameObjBlueprint {
@@ -109,7 +112,8 @@ pub enum Task {
 	Wander(),
 	GetTo(CircleBounds),
 	Eat(Genus),
-	Hunt(Genus)
+	Hunt(Genus),
+	Reproduce
 }
 
 pub enum Action {
@@ -117,7 +121,8 @@ pub enum Action {
 	Hit { bounds : CircleBounds, damage : f32 },
 	Swallow(usize),
 	Pick(usize),
-	MoveTo(Point)
+	MoveTo(Point),
+	Spawn(GameObj)
 }
 
 pub enum TaskUpd {
@@ -133,7 +138,7 @@ impl GameObj {
 			TaskWait
 		} else {
 			match &self.tasks.last().unwrap() {
-				Task::Wander() => gen_circle_bounds(&w.map[1].bounds, &w.objects, &self.blueprint).
+				Task::Wander() => gen_circle_bounds(&Bounds::Rect{ v : &w.map[1].bounds }, &w.objects, &self.blueprint).
 					map( |b| TaskPush(Task::GetTo(b))).unwrap_or(TaskWait),
 				Task::GetTo(target) => if target.collides_with(&self.bounds) { TaskPop } else {
 					let mut obstacles = w.objects.iter().filter(|o| o.blueprint.genus != Genus::Plant(Size::Small)).map(|o| &o.bounds);
@@ -164,6 +169,18 @@ impl GameObj {
 						TaskPop
 					}
 				},
+				Task::Reproduce => {
+					match self.blueprint.genus {
+						Genus::Plant(_) => {
+							if rng_range(&(0.0..1.0)) < 0.0005 {
+								let new_b = Bounds::Circle { v: &CircleBounds { r: self.bounds.r * 4.0, ..self.bounds } };
+								gen_circle_bounds(&new_b, &w.objects, &self.blueprint).
+									map(|b| TaskAct(Action::Spawn(GameObj::from(&self.blueprint, b)))).unwrap_or(TaskWait)
+							} else { TaskWait }
+						},
+						Genus::Animal(_, _) => { println!("TODO!"); TaskWait },
+					}
+				}
 			}
 		}
 	}
@@ -183,6 +200,7 @@ impl World {
 					Action::Swallow(i) => if removed_objects.contains(&i) { /*TODO*/ } else { removed_objects.insert(i.clone()); },
 					Action::Pick(i) => if removed_objects.contains(&i) { /*TODO*/ } else { /*TODO add inventory*/ removed_objects.insert(i.clone()); },
 					Action::MoveTo(point) => self.objects[i].bounds.coords = point,
+					Action::Spawn(obj) => self.objects.push(obj)
 				},
 			});
 		removed_objects.iter().sorted_by_key(|i| -(**i as i32)).for_each( |i| { self.objects.remove(*i); });

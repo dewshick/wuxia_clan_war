@@ -13,6 +13,15 @@ pub struct CircleBounds { pub coords : Coords, pub r : Dist }
 #[derive(Debug)]
 pub struct RectBounds { pub coords : Coords, pub size: Size }
 
+impl RectBounds {
+	pub fn from_circle(b : CircleBounds) -> RectBounds {
+		RectBounds {
+			coords : Point { x : b.coords.x - b.r, y : b.coords.y - b.r },
+			size : Point { x : 2.0 * b.r, y : 2.0 * b.r }
+		}
+	}
+}
+
 impl Point {
 	pub fn init() -> Direction { Point { x: 0.0, y : 0.0 } }
 	pub fn new(x : Coord, y : Coord) -> Point { Point { x, y } }
