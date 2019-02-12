@@ -92,7 +92,7 @@ impl GameObjBlueprint {
 		color : ColorTone::DimGrey,
 		durability : 100.0,
 		speed : 0.6,
-		tasks : &[Task::Eat(Genus::Animal(Size::Small, FoodPreference::Herbivore))]
+		tasks : &[Task::Hunt(Genus::Animal(Size::Small, FoodPreference::Herbivore))]
 	};
 }
 
@@ -109,6 +109,7 @@ pub enum Task {
 	Wander(),
 	GetTo(CircleBounds),
 	Eat(Genus),
+	Hunt(Genus)
 }
 
 pub enum Action {
@@ -145,6 +146,19 @@ impl GameObj {
 							TaskAct(Action::Swallow(i))
 						} else {
 							TaskPush(Task::GetTo(food.bounds.clone()))
+						}
+					} else {
+						TaskPop
+					}
+				},
+				Task::Hunt(genus) => {
+					if let Some((i, food)) = w.objects.iter().enumerate().filter( |(_, obj)| obj.blueprint.genus == *genus).
+						min_by_key( |(_, obj)| OrderedFloat(obj.bounds.coords.dist(&self.bounds.coords))) {
+						if food.bounds.collides_with(&self.bounds) {
+							TaskAct(Action::Swallow(i))
+						} else {
+							let mut obstacles = w.objects.iter().filter(|o| o.blueprint.genus != Genus::Plant(Size::Small)).map(|o| &o.bounds);
+							TaskAct(Action::MoveTo(self.bounds.coords + move_to_target(&self.bounds, &food.bounds.coords, &mut obstacles, self.blueprint.speed)))
 						}
 					} else {
 						TaskPop
