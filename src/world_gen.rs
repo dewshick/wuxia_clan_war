@@ -2,6 +2,7 @@ use super::collision::*;
 use super::std_extended::*;
 use crate::world_update::GameObj;
 use crate::world_update::GameObjBlueprint;
+use ordered_float::OrderedFloat;
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum Tile { Forest, Village, Mine, Water }
@@ -17,9 +18,11 @@ pub struct World { pub map : Map, pub objects : Vec<GameObj> }
 pub fn generate_world(map : Map, wanderers : i32) -> World {
 	let mut world = World { map, objects: vec![] };
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::TREE, None);
-	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::HARE, Some(10));
+	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::HARE, Some(100));
+	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::WOLF, Some(10));
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::GRASS, None);
 	add_objects(&mut world, Tile::Village, &GameObjBlueprint::WANDERER, Some(wanderers));
+	world.objects.sort_by_key(|obj| OrderedFloat(obj.blueprint.speed));
 	world
 }
 

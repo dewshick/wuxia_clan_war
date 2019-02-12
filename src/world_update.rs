@@ -53,7 +53,7 @@ impl GameObjBlueprint {
 
 	pub const WANDERER: GameObjBlueprint = GameObjBlueprint {
 		name : "Wanderer",
-		genus : Genus::Animal(),
+		genus : Genus::Animal(Size::Average, FoodPreference::Herbivore),
 		min_dist : 2.0,
 		radius: (4.0..4.0),
 		color : ColorTone::Black,
@@ -64,7 +64,7 @@ impl GameObjBlueprint {
 
 	pub const HARE : GameObjBlueprint = GameObjBlueprint {
 		name : "Hare",
-		genus : Genus::Animal(),
+		genus : Genus::Animal(Size::Small, FoodPreference::Herbivore),
 		min_dist : 2.0,
 		radius: (3.0..3.0),
 		color : ColorTone::White,
@@ -80,16 +80,29 @@ impl GameObjBlueprint {
 		radius: (2.0..2.0),
 		color : ColorTone::DarkGreen,
 		durability : 20.0,
-		speed : 0.33,
+		speed : 0.0,
 		tasks : &[]
+	};
+
+	pub const WOLF: GameObjBlueprint = GameObjBlueprint {
+		name : "Wolf",
+		genus : Genus::Animal(Size::Average, FoodPreference::Carnivore),
+		min_dist : 10.0,
+		radius: (6.0..6.0),
+		color : ColorTone::DimGrey,
+		durability : 100.0,
+		speed : 0.6,
+		tasks : &[Task::Eat(Genus::Animal(Size::Small, FoodPreference::Herbivore))]
 	};
 }
 
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Genus { Plant(Size), Animal() }
+pub enum Genus { Plant(Size), Animal(Size, FoodPreference) }
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Size { Small, Big }
+pub enum Size { Small, Average, Big }
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum FoodPreference { Herbivore, Carnivore }
 
 #[derive(Debug, Clone)]
 pub enum Task {
