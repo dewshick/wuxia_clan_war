@@ -12,11 +12,13 @@ use ggez::graphics::Mesh;
 use fps_counter::FPSCounter;
 use ggez::graphics::Color;
 use ggez::event::{EventHandler, run};
+use ordered_float::OrderedFloat;
 
 pub struct RenderedShape<'a> { color : Color, bounds : Bounds<'a> }
 
 impl World {
 	pub fn to_scene(&mut self) -> Vec<RenderedShape> {
+		self.objects.sort_by_key(|obj| OrderedFloat(obj.blueprint.speed));
 		self.map.iter().map(|layer| {
 			RenderedShape { bounds : Bounds::Rect { v : &layer.bounds }, color : tile_color(&layer.tile) }
 		}).chain(self.objects.iter().map(|obj| RenderedShape {

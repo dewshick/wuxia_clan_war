@@ -9,11 +9,11 @@ use crate::world_gen::gen_circle_bounds;
 use ordered_float::OrderedFloat;
 use self::TaskUpd::*;
 use std::collections::HashSet;
-use crate::std_extended::index_iter;
 use itertools::Itertools;
 use crate::collision::RectBounds;
 use crate::world_gen::Bounds;
 use crate::std_extended::rng_range;
+use crate::collision::Dist;
 //use crate::std_extended::with_index_iter;
 
 #[derive(Debug)]
@@ -21,12 +21,23 @@ pub struct GameObj {
 	pub blueprint : &'static GameObjBlueprint,
 	pub bounds : CircleBounds,
 	pub durability : Amount,
-	pub tasks : Vec<Task>
+	pub tasks : Vec<Task>,
+	pub tmp_effects : Vec<TemporalEffect>
 }
+
+#[derive(Debug)]
+pub struct TemporalEffect {
+	period : i32,
+	duration : Option<i32>,
+	effect : EffectType
+} // TODO: aging, curse
+
+#[derive(Debug)]
+enum EffectType { Hunger(Amount), Slow(Amount), Damage(Amount), Stun }
 
 impl GameObj {
 	pub fn from(blueprint : &'static GameObjBlueprint, bounds : CircleBounds) -> GameObj {
-		GameObj { blueprint, durability : blueprint.durability, bounds, tasks : blueprint.tasks.to_vec() }
+		GameObj { blueprint, durability : blueprint.durability, bounds, tasks : blueprint.tasks.to_vec(), tmp_effects : vec![] }
 	}
 }
 
@@ -34,11 +45,11 @@ impl GameObj {
 pub struct GameObjBlueprint {
 	pub name : &'static str,
 	pub genus : Genus,
-	pub min_dist : f32, // required for worldgen
-	pub radius : Range<f32>,
+	pub min_dist : Dist, // required for worldgen
+	pub radius : Range<Dist>,
 	pub color : ColorTone,
-	pub durability : f32,
-	pub speed : f32,
+	pub durability : Amount,
+	pub speed : Dist,
 	pub tasks : &'static [Task]
 }
 
@@ -172,7 +183,7 @@ impl GameObj {
 				Task::Reproduce => {
 					match self.blueprint.genus {
 						Genus::Plant(_) => {
-							if rng_range(&(0.0..1.0)) < 0.0005 {
+							if rng_range(&(0.0..1.0)) < 0.001 {
 								let new_b = Bounds::Circle { v: &CircleBounds { r: self.bounds.r * 4.0, ..self.bounds } };
 								gen_circle_bounds(&new_b, &w.objects, &self.blueprint).
 									map(|b| TaskAct(Action::Spawn(GameObj::from(&self.blueprint, b)))).unwrap_or(TaskWait)
@@ -189,7 +200,7 @@ impl GameObj {
 impl World {
 	pub fn upd(&mut self) {
 		let mut removed_objects : HashSet<usize> = HashSet::new();
-		let plans : Vec<(usize, TaskUpd)> = index_iter(&self.objects).map( |i| (i, self.objects[i].plan(&self))).collect();
+		let plans : Vec<(usize, TaskUpd)> = self.objects.iter().enumerate().map( |(i, o)| (i, o.plan(&self))).collect();
 		plans.into_iter().for_each(|(i, upd)| match upd {
 				TaskUpd::TaskPop => { self.objects[i.clone()].tasks.pop(); },
 				TaskUpd::TaskPush(task) => self.objects[i.clone()].tasks.push(task),

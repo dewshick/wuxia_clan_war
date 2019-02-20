@@ -9,7 +9,7 @@ pub enum Tile { Forest, Village, Mine, Water }
 
 pub enum Bounds<'a> {
 	Rect { v : &'a RectBounds },
-	Circle { v : &'a CircleBounds }
+	Circle { v : &'a CircleBounds },
 }
 
 #[derive(Debug)]
@@ -27,7 +27,6 @@ pub fn generate_world(map : Map, wanderers : i32) -> World {
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::WOLF, Some(10));
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::GRASS, None);
 	add_objects(&mut world, Tile::Village, &GameObjBlueprint::WANDERER, Some(wanderers));
-	world.objects.sort_by_key(|obj| OrderedFloat(obj.blueprint.speed));
 	world
 }
 
