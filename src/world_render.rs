@@ -45,7 +45,7 @@ impl EventHandler for WorldWithDebugInfo {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> GameResult {
-		println!("{}", self.fps.tick());
+//		println!("{}", self.fps.tick());
 		self.world.draw(ctx)
 	}
 }

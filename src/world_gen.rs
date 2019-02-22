@@ -3,6 +3,7 @@ use super::std_extended::*;
 use crate::world_update::GameObj;
 use crate::world_update::GameObjBlueprint;
 use ordered_float::OrderedFloat;
+use crate::world_update::FrameCount;
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum Tile { Forest, Village, Mine, Water }
@@ -18,10 +19,10 @@ pub struct RectTile { pub tile : Tile, pub bounds : RectBounds }
 type Map = Vec<RectTile>;
 
 #[derive(Debug)]
-pub struct World { pub map : Map, pub objects : Vec<GameObj> }
+pub struct World { pub map : Map, pub objects : Vec<GameObj>, pub time : u64 }
 
 pub fn generate_world(map : Map, wanderers : i32) -> World {
-	let mut world = World { map, objects: vec![] };
+	let mut world = World { map, objects: vec![], time : 0 };
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::TREE, None);
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::HARE, Some(100));
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::WOLF, Some(10));
@@ -30,20 +31,21 @@ pub fn generate_world(map : Map, wanderers : i32) -> World {
 	world
 }
 
-fn add_object(layer : &RectTile, objects : &mut Vec<GameObj>, blueprint : &'static GameObjBlueprint) -> bool {
+fn add_object(layer : &RectTile, objects : &mut Vec<GameObj>, blueprint : &'static GameObjBlueprint, time : FrameCount) -> bool {
 	let bounds = gen_circle_bounds(&Bounds::Rect { v: &layer.bounds }, objects, blueprint);
-	if bounds.is_some() { objects.push(GameObj::from(&blueprint, bounds.unwrap())); true } else { false }
+	if bounds.is_some() { objects.push(GameObj::from(&blueprint, bounds.unwrap(), time)); true } else { false }
 }
 
 pub fn add_objects(w : &mut World, tile : Tile, blueprint : &'static GameObjBlueprint, count : Option<i32>) {
 	let objects = &mut w.objects;
+	let time = w.time;
 	let map = &w.map;
 	map.iter().for_each( |layer| {
 		if layer.tile == tile {
 			if count.is_none() {
-				loop { if !add_object(&layer, objects, blueprint) { break } }
+				loop { if !add_object(&layer, objects, blueprint, time) { break } }
 			} else {
-				for _ in 0..count.unwrap() { add_object(&layer, objects, blueprint); }
+				for _ in 0..count.unwrap() { add_object(&layer, objects, blueprint, time); }
 			}
 		} else {
 			objects.retain(|obj| !obj.bounds.on_layer(&layer.bounds, blueprint.min_dist) || obj.blueprint.name != blueprint.name);

@@ -16,28 +16,44 @@ use crate::std_extended::rng_range;
 use crate::collision::Dist;
 //use crate::std_extended::with_index_iter;
 
+pub type FrameCount = u64;
+const FRAME_MOMENT : FrameCount = 60;
+const FRAME_HOUR : FrameCount = 60 * FRAME_MOMENT;
+const FRAME_DAY : FrameCount = FRAME_MOMENT * 24;
+const FRAME_YEAR : FrameCount = FRAME_DAY * 365;
+
 #[derive(Debug)]
 pub struct GameObj {
 	pub blueprint : &'static GameObjBlueprint,
 	pub bounds : CircleBounds,
 	pub durability : Amount,
 	pub tasks : Vec<Task>,
-	pub tmp_effects : Vec<TemporalEffect>
+	pub tmp_effects : Vec<TemporalEffect>,
 }
 
 #[derive(Debug)]
-pub struct TemporalEffect {
-	period : i32,
-	duration : Option<i32>,
-	effect : EffectType
-} // TODO: aging, curse
+pub struct TemporalEffect { start : FrameCount, duration : FrameCount, effect : EffectType } // TODO: curse, buffs/debuffs
 
-#[derive(Debug)]
-enum EffectType { Hunger(Amount), Slow(Amount), Damage(Amount), Stun }
+impl TemporalEffect {
+	fn new(start : FrameCount, duration : FrameCount, effect : EffectType) -> TemporalEffect {
+		TemporalEffect { start, duration, effect }
+	}
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum EffectType { PeriodicEffect { period : FrameCount, effect : PeriodicEffectType }, Slow(OrderedFloat<Amount>), Stun, DelayedDeath }
+
+#[derive(Debug, Eq, PartialEq)]
+enum PeriodicEffectType { Hunger(OrderedFloat<Amount>), Damage(OrderedFloat<Amount>) }
 
 impl GameObj {
-	pub fn from(blueprint : &'static GameObjBlueprint, bounds : CircleBounds) -> GameObj {
-		GameObj { blueprint, durability : blueprint.durability, bounds, tasks : blueprint.tasks.to_vec(), tmp_effects : vec![] }
+	pub fn from(blueprint : &'static GameObjBlueprint, bounds : CircleBounds, time : FrameCount) -> GameObj {
+		let tmp_effects = blueprint.max_lifetime.iter().map( |lifetime| TemporalEffect {
+			start: time + (*lifetime as f32 * rng_range(&(0.7..1.0))) as u64,
+			duration: 1,
+			effect: EffectType::DelayedDeath
+		}).collect();
+		GameObj { blueprint, durability : blueprint.durability, bounds, tasks : blueprint.tasks.to_vec(), tmp_effects }
 	}
 }
 
@@ -50,7 +66,8 @@ pub struct GameObjBlueprint {
 	pub color : ColorTone,
 	pub durability : Amount,
 	pub speed : Dist,
-	pub tasks : &'static [Task]
+	pub tasks : &'static [Task],
+	pub max_lifetime: Option<FrameCount>
 }
 
 impl GameObjBlueprint {
@@ -62,7 +79,8 @@ impl GameObjBlueprint {
 		color : ColorTone::Brown,
 		durability : 100.0,
 		speed : 0.0,
-		tasks : &[]
+		tasks : &[],
+		max_lifetime: None
 	};
 
 	pub const WANDERER: GameObjBlueprint = GameObjBlueprint {
@@ -73,7 +91,8 @@ impl GameObjBlueprint {
 		color : ColorTone::Black,
 		durability : 20.0,
 		speed : 0.33,
-		tasks : &[Task::Wander()]
+		tasks : &[Task::Wander()],
+		max_lifetime: Some(2 * FRAME_YEAR)
 	};
 
 	pub const HARE : GameObjBlueprint = GameObjBlueprint {
@@ -84,7 +103,8 @@ impl GameObjBlueprint {
 		color : ColorTone::White,
 		durability : 15.0,
 		speed : 0.9,
-		tasks : &[Task::Eat(Genus::Plant(Size::Small))]
+		tasks : &[Task::Eat(Genus::Plant(Size::Small))],
+		max_lifetime: Some(FRAME_YEAR)
 	};
 
 	pub const GRASS: GameObjBlueprint = GameObjBlueprint {
@@ -95,7 +115,8 @@ impl GameObjBlueprint {
 		color : ColorTone::DarkGreen,
 		durability : 20.0,
 		speed : 0.0,
-		tasks : &[Task::Reproduce]
+		tasks : &[Task::Reproduce],
+		max_lifetime: Some(FRAME_DAY)
 	};
 
 	pub const WOLF: GameObjBlueprint = GameObjBlueprint {
@@ -106,7 +127,8 @@ impl GameObjBlueprint {
 		color : ColorTone::DimGrey,
 		durability : 100.0,
 		speed : 0.6,
-		tasks : &[Task::Hunt(Genus::Animal(Size::Small, FoodPreference::Herbivore))]
+		tasks : &[Task::Hunt(Genus::Animal(Size::Small, FoodPreference::Herbivore))],
+		max_lifetime: Some(FRAME_YEAR)
 	};
 }
 
@@ -186,7 +208,7 @@ impl GameObj {
 							if rng_range(&(0.0..1.0)) < 0.001 {
 								let new_b = Bounds::Circle { v: &CircleBounds { r: self.bounds.r * 4.0, ..self.bounds } };
 								gen_circle_bounds(&new_b, &w.objects, &self.blueprint).
-									map(|b| TaskAct(Action::Spawn(GameObj::from(&self.blueprint, b)))).unwrap_or(TaskWait)
+									map(|b| TaskAct(Action::Spawn(GameObj::from(&self.blueprint, b, w.time)))).unwrap_or(TaskWait)
 							} else { TaskWait }
 						},
 						Genus::Animal(_, _) => { println!("TODO!"); TaskWait },
@@ -214,6 +236,27 @@ impl World {
 					Action::Spawn(obj) => self.objects.push(obj)
 				},
 			});
+
+		let time = self.time;
+		self.objects.iter_mut().enumerate().for_each(|(i, obj)| {
+// TODO: die from hunger and from damage, add hunger
+			obj.tmp_effects.retain(|eff| eff.start + eff.duration >= time);
+			obj.tmp_effects.iter().filter(|eff| eff.start <= time).for_each(|eff| {
+				// TODO: fill missing branches
+				match &eff.effect {
+					EffectType::PeriodicEffect { period, effect } => if ((time - eff.start) % period) == 0 {
+						match effect {
+							PeriodicEffectType::Hunger(_) => {},
+							PeriodicEffectType::Damage(_) => {},
+						}
+					},
+					EffectType::Slow(_) => {},
+					EffectType::Stun => {},
+					EffectType::DelayedDeath => { println!("DEATH!");removed_objects.insert(i); },
+				}
+			});
+		});
+		self.time += 1;
 		removed_objects.iter().sorted_by_key(|i| -(**i as i32)).for_each( |i| { self.objects.remove(*i); });
 	}
 }
