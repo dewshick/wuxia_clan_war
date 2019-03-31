@@ -95,6 +95,18 @@ impl GameObjBlueprint {
 		max_lifetime: Some(2 * FRAME_YEAR)
 	};
 
+	pub const PLAYER: GameObjBlueprint = GameObjBlueprint {
+		name : "Player",
+		genus : Genus::Animal(Size::Average, FoodPreference::Herbivore),
+		min_dist : 2.0,
+		radius: (4.0..4.0),
+		color : ColorTone::Black,
+		durability : 20.0,
+		speed : 0.33,
+		tasks : &[Task::ListenControls()],
+		max_lifetime: Some(2 * FRAME_YEAR)
+	};
+
 	pub const HARE : GameObjBlueprint = GameObjBlueprint {
 		name : "Hare",
 		genus : Genus::Animal(Size::Small, FoodPreference::Herbivore),
@@ -124,7 +136,7 @@ impl GameObjBlueprint {
 		genus : Genus::Animal(Size::Average, FoodPreference::Carnivore),
 		min_dist : 10.0,
 		radius: (6.0..6.0),
-		color : ColorTone::DimGrey,
+		color : ColorTone::Red,
 		durability : 100.0,
 		speed : 0.6,
 		tasks : &[Task::Hunt(Genus::Animal(Size::Small, FoodPreference::Herbivore))],
@@ -146,7 +158,8 @@ pub enum Task {
 	GetTo(CircleBounds),
 	Eat(Genus),
 	Hunt(Genus),
-	Reproduce
+	Reproduce,
+	ListenControls(),
 }
 
 pub enum Action {
@@ -213,6 +226,9 @@ impl GameObj {
 						},
 						Genus::Animal(_, _) => { println!("TODO!"); TaskWait },
 					}
+				}
+				Task::ListenControls() => {
+					TaskWait
 				}
 			}
 		}
