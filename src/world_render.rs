@@ -13,6 +13,10 @@ use fps_counter::FPSCounter;
 use ggez::graphics::Color;
 use ggez::event::{EventHandler, run};
 use ordered_float::OrderedFloat;
+use ggez::input::keyboard::KeyCode;
+use itertools::Itertools;
+use ggez::input::keyboard::KeyMods;
+use ggez::event::EventsLoop;
 
 pub struct RenderedShape<'a> { color : Color, bounds : Bounds<'a> }
 
@@ -47,6 +51,26 @@ impl EventHandler for WorldWithDebugInfo {
 	fn draw(&mut self, ctx: &mut Context) -> GameResult {
 //		println!("{}", self.fps.tick());
 		self.world.draw(ctx)
+	}
+
+	fn key_down_event(
+		&mut self,
+		ctx: &mut Context,
+		keycode: KeyCode,
+		_keymods: KeyMods,
+		_repeat: bool,
+	) {
+		let i = self.world.objects.iter().find_position( |item| item.blueprint.name == "Player").unwrap().0;
+		let mut player = &mut self.world.objects[i];
+		let speed = player.blueprint.speed;
+		match keycode {
+			KeyCode::Up =>  player.bounds.coords.y -= speed,
+			KeyCode::Down =>  player.bounds.coords.y += speed,
+			KeyCode::Left =>  player.bounds.coords.x -= speed,
+			KeyCode::Right =>  player.bounds.coords.x += speed,
+			KeyCode::Escape => ggez::quit(ctx),
+			_ => {},
+		}
 	}
 }
 

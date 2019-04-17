@@ -100,7 +100,7 @@ impl GameObjBlueprint {
 		genus : Genus::Animal(Size::Average, FoodPreference::Herbivore),
 		min_dist : 2.0,
 		radius: (4.0..4.0),
-		color : ColorTone::Black,
+		color : ColorTone::BlueViolet,
 		durability : 20.0,
 		speed : 0.33,
 		tasks : &[Task::ListenControls()],
