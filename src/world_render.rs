@@ -41,18 +41,32 @@ fn tile_color(t : &Tile) -> Color {
 	}
 }
 
-struct WorldWithDebugInfo { world : World, fps : FPSCounter, player_direction : Point }
+struct WorldWithDebugInfo { world : World, fps : FPSCounter, controls : ControlsState }
 
-fn updDirection(direction : Point, keycode: KeyCode, down : bool) -> Point {
-	let down_mult = if down { 1.0 } else { 0.0 };
-	match keycode {
-		KeyCode::Up =>  Point::new(direction.x, -1.0 * down_mult),
-		KeyCode::Down =>  Point::new(direction.x, 1.0 * down_mult),
-		KeyCode::Left =>  Point::new(-1.0 * down_mult, direction.y),
-		KeyCode::Right =>  Point::new(1.0 * down_mult, direction.y),
-		_ => direction,
+struct ControlsState { up : bool, down : bool, left : bool, right : bool }
+
+fn bool2f32(b : bool) -> f32 {
+	if (b) { 1.0 } else { 0.0 }
+}
+
+impl ControlsState {
+	fn init() -> ControlsState { ControlsState { up : false, down : false, left : false, right : false } }
+
+	fn upd_key(&mut self, keycode : KeyCode, down : bool) {
+		match keycode {
+			KeyCode::Up => { self.up = down },
+			KeyCode::Down =>  { self.down = down },
+			KeyCode::Left =>  { self.left = down },
+			KeyCode::Right =>  { self.right = down },
+			_ => {},
+		}
+	}
+
+	fn direction(&self) -> Point {
+		Point { x: bool2f32(self.right) - bool2f32(self.left), y: bool2f32(self.down) - bool2f32(self.up) }
 	}
 }
+
 
 impl EventHandler for WorldWithDebugInfo {
 	fn update(&mut self, ctx: &mut Context) -> GameResult {
@@ -60,7 +74,7 @@ impl EventHandler for WorldWithDebugInfo {
 		let i = self.world.objects.iter().find_position( |item| item.blueprint.name == "Player").unwrap().0;
 		let mut player = &mut self.world.objects[i];
 		let speed = player.blueprint.speed;
-		player.bounds.coords = player.bounds.coords + self.player_direction.multf(speed);
+		player.bounds.coords = player.bounds.coords + self.controls.direction().multf(speed);
 //    update world
 		self.world.update(ctx)
 	}
@@ -76,11 +90,7 @@ impl EventHandler for WorldWithDebugInfo {
 		_keymods: KeyMods,
 		_repeat: bool,
 	) {
-		self.player_direction = updDirection(self.player_direction, keycode, true);
-		match keycode {
-			KeyCode::Escape => ggez::quit(ctx),
-			_ => {},
-		}
+		self.controls.upd_key(keycode, true);
 	}
 
 	fn key_up_event(
@@ -89,7 +99,7 @@ impl EventHandler for WorldWithDebugInfo {
 		keycode: KeyCode,
 		_keymods: KeyMods,
 	) {
-		self.player_direction = updDirection(self.player_direction, keycode, false);
+		self.controls.upd_key(keycode, false);
 	}
 }
 
@@ -115,5 +125,5 @@ impl EventHandler for World {
 pub fn ggez_loop(w : World) {
 	let cb = ggez::ContextBuilder::new("super_simple", "ggez");
 	let (ctx, event_loop) = &mut cb.build().unwrap();
-	run(ctx, event_loop, &mut WorldWithDebugInfo { world : w, fps : fps_counter::FPSCounter::new(), player_direction : Point::init() }).unwrap();
+	run(ctx, event_loop, &mut WorldWithDebugInfo { world : w, fps : fps_counter::FPSCounter::new(), controls: ControlsState::init() }).unwrap();
 }
