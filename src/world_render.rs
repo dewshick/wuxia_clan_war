@@ -41,15 +41,31 @@ fn tile_color(t : &Tile) -> Color {
 	}
 }
 
-struct WorldWithDebugInfo { world : World, fps : FPSCounter }
+struct WorldWithDebugInfo { world : World, fps : FPSCounter, player_direction : Point }
+
+fn updDirection(direction : Point, keycode: KeyCode, down : bool) -> Point {
+	let down_mult = if down { 1.0 } else { 0.0 };
+	match keycode {
+		KeyCode::Up =>  Point::new(direction.x, -1.0 * down_mult),
+		KeyCode::Down =>  Point::new(direction.x, 1.0 * down_mult),
+		KeyCode::Left =>  Point::new(-1.0 * down_mult, direction.y),
+		KeyCode::Right =>  Point::new(1.0 * down_mult, direction.y),
+		_ => direction,
+	}
+}
 
 impl EventHandler for WorldWithDebugInfo {
 	fn update(&mut self, ctx: &mut Context) -> GameResult {
+//    update player
+		let i = self.world.objects.iter().find_position( |item| item.blueprint.name == "Player").unwrap().0;
+		let mut player = &mut self.world.objects[i];
+		let speed = player.blueprint.speed;
+		player.bounds.coords = player.bounds.coords + self.player_direction.multf(speed);
+//    update world
 		self.world.update(ctx)
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> GameResult {
-//		println!("{}", self.fps.tick());
 		self.world.draw(ctx)
 	}
 
@@ -60,17 +76,20 @@ impl EventHandler for WorldWithDebugInfo {
 		_keymods: KeyMods,
 		_repeat: bool,
 	) {
-		let i = self.world.objects.iter().find_position( |item| item.blueprint.name == "Player").unwrap().0;
-		let mut player = &mut self.world.objects[i];
-		let speed = player.blueprint.speed;
+		self.player_direction = updDirection(self.player_direction, keycode, true);
 		match keycode {
-			KeyCode::Up =>  player.bounds.coords.y -= speed,
-			KeyCode::Down =>  player.bounds.coords.y += speed,
-			KeyCode::Left =>  player.bounds.coords.x -= speed,
-			KeyCode::Right =>  player.bounds.coords.x += speed,
 			KeyCode::Escape => ggez::quit(ctx),
 			_ => {},
 		}
+	}
+
+	fn key_up_event(
+		&mut self,
+		ctx: &mut Context,
+		keycode: KeyCode,
+		_keymods: KeyMods,
+	) {
+		self.player_direction = updDirection(self.player_direction, keycode, false);
 	}
 }
 
@@ -96,5 +115,5 @@ impl EventHandler for World {
 pub fn ggez_loop(w : World) {
 	let cb = ggez::ContextBuilder::new("super_simple", "ggez");
 	let (ctx, event_loop) = &mut cb.build().unwrap();
-	run(ctx, event_loop, &mut WorldWithDebugInfo { world : w, fps : fps_counter::FPSCounter::new() }).unwrap();
+	run(ctx, event_loop, &mut WorldWithDebugInfo { world : w, fps : fps_counter::FPSCounter::new(), player_direction : Point::init() }).unwrap();
 }
