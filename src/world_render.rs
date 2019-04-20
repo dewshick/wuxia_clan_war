@@ -43,14 +43,14 @@ fn tile_color(t : &Tile) -> Color {
 
 struct WorldWithDebugInfo { world : World, fps : FPSCounter, controls : ControlsState }
 
-struct ControlsState { up : bool, down : bool, left : bool, right : bool }
+struct ControlsState { up : bool, down : bool, left : bool, right : bool, superhot : bool }
 
 fn bool2f32(b : bool) -> f32 {
 	if (b) { 1.0 } else { 0.0 }
 }
 
 impl ControlsState {
-	fn init() -> ControlsState { ControlsState { up : false, down : false, left : false, right : false } }
+	fn init() -> ControlsState { ControlsState { up : false, down : false, left : false, right : false, superhot : true } }
 
 	fn upd_key(&mut self, keycode : KeyCode, down : bool) {
 		match keycode {
@@ -58,6 +58,7 @@ impl ControlsState {
 			KeyCode::Down =>  { self.down = down },
 			KeyCode::Left =>  { self.left = down },
 			KeyCode::Right =>  { self.right = down },
+			KeyCode::Space => if down { self.superhot = !self.superhot; }
 			_ => {},
 		}
 	}
@@ -77,7 +78,7 @@ impl EventHandler for WorldWithDebugInfo {
 		let direction = self.controls.direction();
 		player.bounds.coords = player.bounds.coords + direction.multf(speed);
 //    update world
-		if (direction.len() > 0.001) { self.world.update(ctx) } else { Ok(()) }
+		if (direction.len() > 0.001 || !self.controls.superhot) { self.world.update(ctx) } else { Ok(()) }
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> GameResult {
