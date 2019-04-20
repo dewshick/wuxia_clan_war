@@ -74,9 +74,10 @@ impl EventHandler for WorldWithDebugInfo {
 		let i = self.world.objects.iter().find_position( |item| item.blueprint.name == "Player").unwrap().0;
 		let mut player = &mut self.world.objects[i];
 		let speed = player.blueprint.speed;
-		player.bounds.coords = player.bounds.coords + self.controls.direction().multf(speed);
+		let direction = self.controls.direction();
+		player.bounds.coords = player.bounds.coords + direction.multf(speed);
 //    update world
-		self.world.update(ctx)
+		if (direction.len() > 0.001) { self.world.update(ctx) } else { Ok(()) }
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> GameResult {
