@@ -26,7 +26,7 @@ pub fn generate_world(map : Map, wanderers : i32) -> World {
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::TREE, None);
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::HARE, Some(100));
 	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::WOLF, Some(10));
-	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::GRASS, None);
+	add_objects(&mut world, Tile::Forest, &GameObjBlueprint::GRASS, Some(1000));
 	add_objects(&mut world, Tile::Village, &GameObjBlueprint::WANDERER, Some(wanderers));
 	add_objects(&mut world, Tile::Mine, &GameObjBlueprint::PLAYER, Some(1));
 	world

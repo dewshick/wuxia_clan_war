@@ -73,10 +73,12 @@ impl EventHandler for WorldWithDebugInfo {
 	fn update(&mut self, ctx: &mut Context) -> GameResult {
 //    update player
 		let i = self.world.objects.iter().find_position( |item| item.blueprint.name == "Player").unwrap().0;
-		let mut player = &mut self.world.objects[i];
+		let mut player = &self.world.objects[i];
 		let speed = player.blueprint.speed;
 		let direction = self.controls.direction();
-		player.bounds.coords = player.bounds.coords + direction.multf(speed);
+		let upd_coords = player.move_to(&self.world, &(player.bounds.coords + direction.multf(speed)));
+		let mut player_mut = &mut self.world.objects[i];
+		player_mut.bounds.coords = upd_coords;
 //    update world
 		if (direction.len() > 0.001 || !self.controls.superhot) { self.world.update(ctx) } else { Ok(()) }
 	}
@@ -115,7 +117,7 @@ impl EventHandler for World {
 	fn draw(&mut self, ctx: &mut Context) -> GameResult {
 		let mesh: Mesh = self.to_scene().iter().fold(&mut MeshBuilder::new(), |mb, shape| match shape.bounds {
 			Bounds::Rect { v : RectBounds { coords, size } } => mb.rectangle(DrawMode::Fill, Rect::new(coords.x, coords.y, size.x, size.y), shape.color.into()),
-			Bounds::Circle { v : CircleBounds { coords, r } } => mb.circle(DrawMode::Fill, Point2::new(coords.x, coords.y), *r, 0.2, shape.color.into()),
+			Bounds::Circle { v : CircleBounds { coords, r } } => mb.circle(DrawMode::Fill, Point2::new(coords.x, coords.y), *r, 0.4, shape.color.into()),
 		}).build(ctx)?;
 
 		draw(ctx, &mesh, (Point2::new(0.0, 0.0),))?;

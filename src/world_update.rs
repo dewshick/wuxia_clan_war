@@ -179,6 +179,11 @@ pub enum TaskUpd {
 }
 
 impl GameObj {
+	pub fn move_to(&self, w : &World, target : &Point) -> Point {
+		let mut obstacles = w.objects.iter().filter(|o| o.blueprint.genus != Genus::Plant(Size::Small)).map(|o| &o.bounds);
+		self.bounds.coords + move_to_target(&self.bounds, target, &mut obstacles, self.blueprint.speed)
+	}
+
 	fn plan(&self, w : &World) -> TaskUpd {
 		if self.tasks.is_empty() {
 			TaskWait
@@ -187,8 +192,7 @@ impl GameObj {
 				Task::Wander() => gen_circle_bounds(&Bounds::Rect{ v : &w.map[1].bounds }, &w.objects, &self.blueprint).
 					map( |b| TaskPush(Task::GetTo(b))).unwrap_or(TaskWait),
 				Task::GetTo(target) => if target.collides_with(&self.bounds) { TaskPop } else {
-					let mut obstacles = w.objects.iter().filter(|o| o.blueprint.genus != Genus::Plant(Size::Small)).map(|o| &o.bounds);
-					TaskAct(Action::MoveTo(self.bounds.coords + move_to_target(&self.bounds, &target.coords, &mut obstacles, self.blueprint.speed)))
+					TaskAct(Action::MoveTo(self.move_to(w, &target.coords)))
 				},
 				Task::Eat(genus) => {
 					if let Some((i, food)) = w.objects.iter().enumerate().filter( |(_, obj)| obj.blueprint.genus == *genus).
@@ -208,8 +212,7 @@ impl GameObj {
 						if food.bounds.collides_with(&self.bounds) {
 							TaskAct(Action::Swallow(i))
 						} else {
-							let mut obstacles = w.objects.iter().filter(|o| o.blueprint.genus != Genus::Plant(Size::Small)).map(|o| &o.bounds);
-							TaskAct(Action::MoveTo(self.bounds.coords + move_to_target(&self.bounds, &food.bounds.coords, &mut obstacles, self.blueprint.speed)))
+							TaskAct(Action::MoveTo(self.move_to(w, &food.bounds.coords)))
 						}
 					} else {
 						TaskPop
@@ -218,7 +221,7 @@ impl GameObj {
 				Task::Reproduce => {
 					match self.blueprint.genus {
 						Genus::Plant(_) => {
-							if rng_range(&(0.0..1.0)) < 0.001 {
+							if rng_range(&(0.0..1.0)) < 0.005 {
 								let new_b = Bounds::Circle { v: &CircleBounds { r: self.bounds.r * 4.0, ..self.bounds } };
 								gen_circle_bounds(&new_b, &w.objects, &self.blueprint).
 									map(|b| TaskAct(Action::Spawn(GameObj::from(&self.blueprint, b, w.time)))).unwrap_or(TaskWait)
