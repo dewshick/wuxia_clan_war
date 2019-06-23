@@ -11,10 +11,8 @@ use self::TaskUpd::*;
 use std::collections::HashSet;
 use itertools::Itertools;
 use crate::collision::RectBounds;
-use crate::world_gen::Bounds;
 use crate::std_extended::rng_range;
 use crate::collision::Dist;
-//use crate::std_extended::with_index_iter;
 
 pub type FrameCount = u64;
 const FRAME_MOMENT : FrameCount = 60;
@@ -189,7 +187,7 @@ impl GameObj {
 			TaskWait
 		} else {
 			match &self.tasks.last().unwrap() {
-				Task::Wander() => gen_circle_bounds(&Bounds::Rect{ v : &w.map[1].bounds }, &w.objects, &self.blueprint).
+				Task::Wander() => gen_circle_bounds(&w.size, None, &w.objects, &self.blueprint).
 					map( |b| TaskPush(Task::GetTo(b))).unwrap_or(TaskWait),
 				Task::GetTo(target) => if target.collides_with(&self.bounds) { TaskPop } else {
 					TaskAct(Action::MoveTo(self.move_to(w, &target.coords)))
@@ -222,8 +220,8 @@ impl GameObj {
 					match self.blueprint.genus {
 						Genus::Plant(_) => {
 							if rng_range(&(0.0..1.0)) < 0.005 {
-								let new_b = Bounds::Circle { v: &CircleBounds { r: self.bounds.r * 4.0, ..self.bounds } };
-								gen_circle_bounds(&new_b, &w.objects, &self.blueprint).
+								let new_b = &CircleBounds { r: self.bounds.r * 4.0, ..self.bounds };
+								gen_circle_bounds(&w.size, Some(&new_b), &w.objects, &self.blueprint).
 									map(|b| TaskAct(Action::Spawn(GameObj::from(&self.blueprint, b, w.time)))).unwrap_or(TaskWait)
 							} else { TaskWait }
 						},

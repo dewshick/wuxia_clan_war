@@ -58,7 +58,6 @@ impl Add for Point {
 	fn add(self, p : Point) -> Point { Point { x : self.x + p.x, y : self.y + p.y } }
 }
 
-
 fn avoid_collision<'a, T>(bounds : &CircleBounds, target : &Point, obstacles : &mut T) -> Direction
 where T : Iterator<Item=&'a CircleBounds> {
 	let active_obs = obstacles.filter(|obs| obs.coords.dist(&bounds.coords) < obs.r + bounds.r &&
