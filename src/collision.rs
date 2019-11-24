@@ -13,6 +13,67 @@ pub struct CircleBounds { pub coords : Coords, pub r : Dist }
 #[derive(Debug)]
 pub struct RectBounds { pub coords : Coords, pub size: Size }
 
+const WORLD_SIZE : (usize, usize) = (1024, 768);
+const GRID_CELL_SIZE : usize = 30;
+const GRID_SIZE : (usize, usize) = (WORLD_SIZE.0 / GRID_CELL_SIZE, WORLD_SIZE.1 / GRID_CELL_SIZE );
+
+pub struct CollisionGrid { objects : [[Box<[i32]>; GRID_SIZE.1] ; GRID_SIZE.0] }
+
+pub trait Traverser<T> {
+	fn each(&self, closure : &Fn(&T)) {
+		self.reduce(Void{}, &|_ : Void, val| {
+			closure(val);
+			Void{}
+		});
+	}
+	fn reduce<U>(&self, default : U, closure : &Fn(U, &T) -> U) -> U;
+}
+
+struct Void {}
+
+impl<T> Traverser<T> for [T] {
+	fn reduce<U>(&self, default: U, closure: &Fn(U, &T) -> U) -> U {
+		let mut result = default;
+		for i in 0..self.len() {
+			result = closure(result, &self[i])
+		}
+		result
+	}
+}
+
+struct GridRange {
+	xmin : usize, xmax : usize,
+	ymin : usize, ymax :usize
+}
+
+impl Traverser<(usize, usize)> for GridRange {
+	fn reduce<U>(&self, default: U, closure: &Fn(U, &(usize, usize)) -> U) -> U {
+		let mut result = default;
+		for x in self.xmin..=self.xmax {
+			for y in self.ymin..=self.ymax {
+				result = closure(result, &(x, y))
+			}
+		}
+		result
+	}
+}
+
+impl CollisionGrid {
+//	fn addObj(&mut self, obj : CircleBounds) {
+//		obj.rectBounds.each { |(x,y)|
+//
+//		}
+//	}
+//
+//	fn rmObj() {
+//
+//	}
+//
+//	fn updObj() {
+//
+//	}
+}
+
 impl RectBounds {
 	pub fn from_circle(b : CircleBounds) -> RectBounds {
 		RectBounds {
@@ -37,6 +98,7 @@ impl Point {
 
 impl CircleBounds {
 	pub fn on_layer(&self, layer : &RectBounds, dist_from_edge : Dist) -> bool {
+		let v = [1,2,3];
 		!(self.coords.x + self.r + dist_from_edge < layer.coords.x ||
 		self.coords.x - self.r - dist_from_edge > layer.coords.x + layer.size.x ||
 		self.coords.y + self.r + dist_from_edge < layer.coords.y ||
@@ -46,6 +108,15 @@ impl CircleBounds {
 	pub fn collides_with(&self, target : &CircleBounds) -> bool {
 		target.coords.dist(&self.coords) <= self.r + target.r
 	}
+
+//	pub fn rectBounds(&self : CircleBounds) -> GridRange {
+//		GridRange {
+//			xmin: (obj.coords.x - obj.r) as usize / GRID_CELL_SIZE,
+//			xmax: (obj.coords.x + obj.r) as usize / GRID_CELL_SIZE,
+//			ymin: (obj.coords.y - obj.r) as usize / GRID_CELL_SIZE,
+//			ymax: (obj.coords.y + obj.r) as usize / GRID_CELL_SIZE,
+//		}
+//	}
 }
 
 impl Sub for Point {

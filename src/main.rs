@@ -11,6 +11,6 @@ use rand::{thread_rng, Rng};
 extern crate fps_counter;
 
 fn main() {
-	let world = generate_world(Point::new(720.0, 540.0), 400);
+	let world = generate_world(Point::new(1024.0, 768.0), 400);
 	ggez_loop(world);
 }

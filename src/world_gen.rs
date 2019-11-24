@@ -4,6 +4,7 @@ use crate::world_update::GameObj;
 use crate::world_update::GameObjBlueprint;
 use ordered_float::OrderedFloat;
 use crate::world_update::FrameCount;
+use ggez::graphics::Drawable;
 
 pub enum Bounds<'a> {
   Rect { size : &'a Size },
